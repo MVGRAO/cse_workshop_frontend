@@ -1,0 +1,114 @@
+/* Centralized styles for the candidate sign-in page */
+.container {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  background-color: #f4f4f5; /* bg-zinc-50 */
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+
+//   @media (prefers-color-scheme: dark) {
+//     background-color: #000000;
+//   }
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3rem;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  padding: 3rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+
+//   @media (prefers-color-scheme: dark) {
+//     background-color: #111827; /* dark:bg-zinc-900 */
+//   }
+}
+
+.logo {
+  display: block;
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.title {
+  font-size: 1.875rem; /* 3xl */
+  font-weight: 700;
+  color: #000000;
+
+//   @media (prefers-color-scheme: dark) {
+//     color: #ffffff;
+//   }
+}
+
+.signInButton {
+  display: flex;
+  height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 0.5rem;
+  background-color: #2563eb; /* blue-600 */
+  padding: 0 1.5rem;
+  color: #ffffff;
+  font-weight: 500;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease-in-out;
+
+  &:hover {
+    background-color: #1e40af; /* blue-700 */
+  }
+}
+
+.agreement {
+  text-align: center;
+  font-size: 0.875rem; /* text-sm */
+  color: #71717a; /* zinc-600 */
+
+  @media (prefers-color-scheme: dark) {
+    color: #9ca3af; /* zinc-400 */
+  }
+}
+
+.link {
+  font-weight: 500;
+  color: #2563eb;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.footerText {
+  color: #71717a;
+
+  @media (prefers-color-scheme: dark) {
+    color: #9ca3af;
+  }
+}
