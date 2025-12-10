@@ -1,0 +1,307 @@
+.sidebarContainer {
+  position: fixed;
+  top: 100px;
+  bottom: 80px;
+  left: 20px;
+  width: 240px;
+  background: white;
+  border-radius: 20px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: width 0.3s ease;
+  overflow: hidden;
+  font-family: var(--font-roboto), 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  z-index: 100;
+
+  &.isCollapsed {
+    width: 80px;
+
+    .sidebarItem {
+      justify-content: center;
+      span {
+        display: none;
+      }
+    }
+
+    .sidebarAvatar {
+      bottom: -25px;
+    }
+    .sidebarAvatar img {
+      width: 50px;
+      height: 50px;
+    }
+  }
+}
+
+/* Toggle Button */
+.sidebarToggle {
+  position: absolute;
+  top: 20px;
+  right: 15px;
+  background: #DC2626;
+  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+  z-index: 2;
+
+  &.isCollapsed {
+    right: 25px;
+  }
+  &:hover {
+    transform: scale(1.05);
+  }
+}
+
+.divider {
+  color: #8CA5A5;
+  border: none;
+  border-top: 1px solid #8CA5A5;
+  margin: 0;
+  width: 100%;
+}
+
+/* Header (Red Gradient Part) */
+.sidebarHeader {
+  background: linear-gradient(
+    90deg,
+    #1f010ecc 0%,
+    #3e020b 20%,
+    #f40843e5 100%
+  );
+  width: 100%;
+  height: 150px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+
+  .sidebarBadge {
+    position: absolute;
+    background: #DC2626;
+    color: white;
+    font-size: 10px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    bottom: 60px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+
+  .sidebarAvatar {
+    position: absolute;
+    bottom: -50px;
+
+    img {
+      border-radius: 50%;
+      border: 3px solid white;
+      width: 100px;
+      height: 100px;
+      object-fit: cover;
+    }
+  }
+}
+
+/* Username on white */
+.sidebarName {
+  margin-top: 60px;
+  font-weight: 600;
+  color: #DC2626;
+  font-size: 14px;
+  text-align: center;
+  padding: 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/* Menu */
+.sidebarMenu {
+  margin-top: 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  width: 100%;
+  padding: 0 20px;
+  font-size: 16px;
+  font-weight: 500;
+
+  .sidebarItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    color: #8CA5A5;
+    text-decoration: none;
+    // padding: 8px 0;
+    transition: color 0.2s;
+
+    &:hover {
+      color: #DC2626;
+    }
+
+    &.active {
+      color: #DC2626;
+    }
+  }
+}
+
+/* Responsive styles for sidebar */
+@media (max-width: 1024px) {
+  .sidebarContainer {
+    width: 200px;
+
+    &.isCollapsed {
+      width: 70px;
+    }
+  }
+
+  .sidebarHeader {
+    height: 130px;
+
+    .sidebarAvatar img {
+      width: 80px;
+      height: 80px;
+    }
+  }
+
+  .sidebarMenu {
+    padding: 0 15px;
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .sidebarContainer {
+    position: relative;
+    top: 0;
+    bottom: auto;
+    width: 100%;
+    height: auto;
+    min-height: 60px;
+    border-radius: 0;
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 0 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    left: 0;
+
+    &.isCollapsed {
+      width: 100%;
+      height: auto;
+    }
+  }
+
+  .sidebarToggle {
+    position: relative;
+    top: auto;
+    right: auto;
+    order: 3;
+  }
+
+  .sidebarHeader {
+    background: none;
+    width: auto;
+    height: auto;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    order: 1;
+
+    .sidebarBadge {
+      position: relative;
+      bottom: auto;
+      font-size: 8px;
+      padding: 2px 6px;
+    }
+
+    .sidebarAvatar {
+      position: relative;
+      bottom: auto;
+
+      img {
+        width: 40px;
+        height: 40px;
+        border: 2px solid #DC2626;
+      }
+    }
+  }
+
+  .sidebarName {
+    margin-top: 0;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .sidebarMenu {
+    margin-top: 0;
+    flex-direction: row;
+    gap: 10px;
+    width: auto;
+    padding: 0;
+    order: 2;
+    overflow-x: auto;
+
+    .sidebarItem {
+      flex-direction: column;
+      gap: 4px;
+      min-width: 60px;
+      text-align: center;
+      padding: 5px;
+      border-radius: 8px;
+      font-size: 12px;
+
+      span {
+        display: block !important;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 60px;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebarContainer {
+    padding: 0 10px;
+  }
+
+  .sidebarHeader {
+    .sidebarBadge {
+      font-size: 7px;
+      padding: 1px 4px;
+    }
+
+    .sidebarAvatar img {
+      width: 35px;
+      height: 35px;
+    }
+  }
+
+  .sidebarName {
+    font-size: 12px;
+  }
+
+  .sidebarMenu {
+    gap: 8px;
+
+    .sidebarItem {
+      min-width: 50px;
+      font-size: 10px;
+
+      span {
+        max-width: 50px;
+      }
+    }
+  }
+}
+

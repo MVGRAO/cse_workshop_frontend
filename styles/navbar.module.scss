@@ -1,0 +1,98 @@
+// Navbar Styles - Fixed at top with logo only
+
+$primary-red: #DC2626;
+$white: #ffffff;
+$text-dark: #202124;
+$border-color: #e0e0e0;
+
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background-color: $white;
+  border-bottom: 1px solid $border-color;
+  z-index: 1000;
+  padding: 0.2rem 0;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.container {
+  max-width: 100%;
+  margin: 0 auto;
+  margin-left: 280px; // Account for sidebar width
+  padding: 0 2rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 70px;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0; // Prevent logo from shrinking
+  margin-right: auto; // Push everything else to the right
+
+  a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+  }
+}
+
+.navActions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-left: auto; // Ensure it stays on the right
+}
+
+.logoutButton {
+  background: none;
+  border: 1px solid $primary-red;
+  color: $primary-red;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  font-family: var(--font-roboto), 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  &:hover {
+    background-color: $primary-red;
+    color: $white;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 1024px) {
+  .container {
+    margin-left: 200px;
+    padding: 0 1.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    margin-left: 0;
+    padding: 0 1rem;
+  }
+
+  .logo img {
+    height: 35px;
+  }
+
+  .logoutButton {
+    padding: 0.4rem 0.8rem;
+    font-size: 13px;
+  }
+}
+
