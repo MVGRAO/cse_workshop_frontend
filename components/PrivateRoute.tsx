@@ -2,25 +2,34 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAuthToken } from '@/lib/api';
+import { getAuthToken, getUserRole } from '@/lib/api';
 
 interface PrivateRouteProps {
   children: React.ReactNode;
+  allowedRoles?: string[];
 }
 
-export default function PrivateRoute({ children }: PrivateRouteProps) {
+export default function PrivateRoute({ children, allowedRoles }: PrivateRouteProps) {
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
 
   useEffect(() => {
     const token = getAuthToken();
+    const role = getUserRole();
 
     if (!token) {
       router.replace('/candidate');
-    } else {
-      setIsChecking(false);
+      return;
     }
-  }, [router]);
+
+    if (allowedRoles && allowedRoles.length > 0 && role && !allowedRoles.includes(role)) {
+      const fallback = role === 'admin' ? '/admin' : role === 'verifier' ? '/employer' : '/candidate';
+      router.replace(fallback);
+      return;
+    }
+
+    setIsChecking(false);
+  }, [router, allowedRoles]);
 
   if (isChecking) {
     return (

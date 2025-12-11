@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { getAuthToken, login, register, storeAuthToken } from "@/lib/api";
+import { getAuthToken, login, register, storeAuthToken, getUserRole } from "@/lib/api";
 import styles from "../../styles/shared/candidate.module.scss";
 
 export default function CandidateSignIn() {
@@ -24,8 +24,13 @@ export default function CandidateSignIn() {
   // Redirect if already logged in
   useEffect(() => {
     const token = getAuthToken();
-    if (token) {
+    const role = getUserRole();
+    if (token && role === 'student') {
       router.push('/candidate/dashboard');
+    } else if (token && role === 'admin') {
+      router.push('/admin');
+    } else if (token && role === 'verifier') {
+      router.push('/employer/dashboard');
     }
   }, [router]);
 
@@ -38,7 +43,7 @@ export default function CandidateSignIn() {
       if (isLogin) {
         // Login
         const response = await login(formData.email, formData.password);
-        storeAuthToken(response.data.token);
+        storeAuthToken(response.data.token, response.data.user.role);
         router.push('/candidate/dashboard');
       } else {
         // Register
@@ -62,7 +67,7 @@ export default function CandidateSignIn() {
           formData.classYear || undefined,
           formData.mobile || undefined
         );
-        storeAuthToken(response.data.token);
+        storeAuthToken(response.data.token, response.data.user.role);
         router.push('/candidate/dashboard');
       }
     } catch (err: any) {

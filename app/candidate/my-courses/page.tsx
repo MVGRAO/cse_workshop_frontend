@@ -3,9 +3,7 @@
 import PrivateRoute from '@/components/PrivateRoute';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { getAuthToken } from '@/lib/api';
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
+import { getStudentEnrollments } from '@/lib/api';
 
 interface Enrollment {
   _id: string;
@@ -13,6 +11,7 @@ interface Enrollment {
     _id: string;
     title: string;
     description: string;
+    status?: string;
   };
   status: string;
   progress: number;
@@ -25,20 +24,9 @@ export default function MyCourses() {
   useEffect(() => {
     const fetchEnrollments = async () => {
       try {
-        const token = getAuthToken();
-        if (!token) return;
-
-        const response = await fetch(`${API_BASE_URL}/student/enrollments`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            setEnrollments(data.data || []);
-          }
+        const response = await getStudentEnrollments();
+        if (response.success) {
+          setEnrollments(response.data || []);
         }
       } catch (error) {
         console.error('Failed to fetch enrollments:', error);
@@ -51,7 +39,7 @@ export default function MyCourses() {
   }, []);
 
   return (
-    <PrivateRoute>
+    <PrivateRoute allowedRoles={['student']}>
       <div className="min-h-screen bg-gray-50 p-8">
         <div className="max-w-7xl mx-auto">
           <h1 className="text-3xl font-bold text-gray-900 mb-8">
@@ -76,7 +64,7 @@ export default function MyCourses() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {enrollments.map((enrollment) => (
-                <div key={enrollment._id} className="bg-white rounded-lg shadow p-6">
+                <div key={enrollment._id} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition-shadow">
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">
                     {enrollment.course.title}
                   </h3>
@@ -96,19 +84,35 @@ export default function MyCourses() {
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      enrollment.status === 'completed' 
-                        ? 'bg-green-100 text-green-800'
-                        : 'bg-blue-100 text-blue-800'
-                    }`}>
-                      {enrollment.status}
-                    </span>
-                    <Link
-                      href={`/candidate/courses/${enrollment.course._id}`}
-                      className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-                    >
-                      Continue →
-                    </Link>
+                    <div className="space-x-2">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${enrollment.status === 'completed'
+                          ? 'bg-green-100 text-green-800'
+                          : 'bg-blue-100 text-blue-800'
+                        }`}>
+                        {enrollment.status}
+                      </span>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${enrollment.course.status === 'published'
+                          ? 'bg-emerald-100 text-emerald-800'
+                          : 'bg-gray-100 text-gray-700'
+                        }`}>
+                        {enrollment.course.status || 'draft'}
+                      </span>
+                    </div>
+                    {enrollment.course.status === 'published' ? (
+                      <Link
+                        href={`/candidate/courses/${enrollment.course._id}`}
+                        className="inline-flex items-center text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm font-medium transition-colors"
+                      >
+                        Start Course →
+                      </Link>
+                    ) : (
+                      <button
+                        disabled
+                        className="inline-flex items-center text-gray-500 bg-gray-200 px-4 py-2 rounded text-sm font-medium cursor-not-allowed"
+                      >
+                        Start Course (waiting for publish)
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -119,4 +123,3 @@ export default function MyCourses() {
     </PrivateRoute>
   );
 }
-

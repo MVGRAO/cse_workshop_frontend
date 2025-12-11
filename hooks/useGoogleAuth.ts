@@ -73,7 +73,7 @@ export function useGoogleAuth(options: UseGoogleAuthOptions = {}) {
 
             try {
               const authData = await authenticateWithGoogle(response.credential);
-              storeAuthToken(authData.data.token);
+              storeAuthToken(authData.data.token, authData.data.user.role);
               onSuccessRef.current?.(authData);
             } catch (err) {
               const error = err instanceof Error ? err : new Error('Authentication failed');
@@ -105,7 +105,7 @@ export function useGoogleAuth(options: UseGoogleAuthOptions = {}) {
 
             try {
               const authData = await authenticateWithGoogle(response.credential);
-              storeAuthToken(authData.data.token);
+              storeAuthToken(authData.data.token, authData.data.user.role);
               onSuccessRef.current?.(authData);
             } catch (err) {
               const error = err instanceof Error ? err : new Error('Authentication failed');

@@ -30,7 +30,7 @@ export default function EmailPasswordAuth({ onSuccess, onError }: EmailPasswordA
       if (isLogin) {
         // Login
         const response = await login(formData.email, formData.password);
-        storeAuthToken(response.data.token);
+        storeAuthToken(response.data.token, response.data.user.role);
         onSuccess();
       } else {
         // Register
@@ -54,7 +54,7 @@ export default function EmailPasswordAuth({ onSuccess, onError }: EmailPasswordA
           formData.classYear || undefined,
           formData.mobile || undefined
         );
-        storeAuthToken(response.data.token);
+        storeAuthToken(response.data.token, response.data.user.role);
         onSuccess();
       }
     } catch (err: any) {

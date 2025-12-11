@@ -31,9 +31,9 @@ export default function CandidateDashboard() {
           const data = await response.json();
           if (data.success) {
             setStats({
-              enrollments: data.data?.enrollments || 0,
-              completed: data.data?.completedCourses || 0,
-              certificates: data.data?.certificates || 0,
+              enrollments: (data.data?.ongoingCourses?.length || 0) + (data.data?.retakeCourses?.length || 0),
+              completed: data.data?.completedCourses?.length || 0,
+              certificates: data.data?.certificatesCount || 0,
             });
           }
         }
@@ -54,7 +54,7 @@ export default function CandidateDashboard() {
           <h1 className="text-3xl font-bold text-gray-900 mb-8">
             Welcome to CSE Workshop
           </h1>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {/* Quick Stats Cards */}
             <div className="bg-white rounded-lg shadow p-6">
