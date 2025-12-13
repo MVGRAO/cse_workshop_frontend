@@ -116,11 +116,11 @@ const FeedbackForm: React.FC = () => {
 
   const getUserProfile = async () => {
     try {
-      const token = getAuthToken();
+      const token = getAuthToken('student');
       if (token) {
         setIsAuthenticated(true);
         setLoading(true);
-        const response = await getCurrentUser();
+        const response = await getCurrentUser('student');
         if (response?.success) {
           const data = response.data;
 

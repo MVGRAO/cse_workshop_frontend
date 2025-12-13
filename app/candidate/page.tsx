@@ -21,17 +21,14 @@ export default function CandidateSignIn() {
     mobile: '',
   });
 
-  // Redirect if already logged in
+  // Redirect if already logged in as student
   useEffect(() => {
-    const token = getAuthToken();
-    const role = getUserRole();
+    const token = getAuthToken('student');
+    const role = getUserRole('student');
     if (token && role === 'student') {
       router.push('/candidate/dashboard');
-    } else if (token && role === 'admin') {
-      router.push('/admin');
-    } else if (token && role === 'verifier') {
-      router.push('/employer/dashboard');
     }
+    // Don't redirect if user has different role - let them login as student in this tab
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -43,7 +40,15 @@ export default function CandidateSignIn() {
       if (isLogin) {
         // Login
         const response = await login(formData.email, formData.password);
-        storeAuthToken(response.data.token, response.data.user.role);
+        
+        // Verify it's a student role
+        if (!response.data.user || response.data.user.role !== 'student') {
+          setErrorMessage('This account is not a student account. Please use the correct login page.');
+          setLoading(false);
+          return;
+        }
+        
+        storeAuthToken(response.data.token, 'student');
         router.push('/candidate/dashboard');
       } else {
         // Register
@@ -67,7 +72,15 @@ export default function CandidateSignIn() {
           formData.classYear || undefined,
           formData.mobile || undefined
         );
-        storeAuthToken(response.data.token, response.data.user.role);
+        
+        // Verify it's a student role (registration should always create student)
+        if (!response.data.user || response.data.user.role !== 'student') {
+          setErrorMessage('Registration created wrong account type. Please contact support.');
+          setLoading(false);
+          return;
+        }
+        
+        storeAuthToken(response.data.token, 'student');
         router.push('/candidate/dashboard');
       }
     } catch (err: any) {

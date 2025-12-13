@@ -17,7 +17,7 @@ export default function CandidateDashboard() {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const token = getAuthToken();
+        const token = getAuthToken('student');
         if (!token) return;
 
         // Fetch dashboard data

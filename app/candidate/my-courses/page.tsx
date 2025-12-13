@@ -15,6 +15,13 @@ interface Enrollment {
   };
   status: string;
   progress: number;
+  certificate?: {
+    theoryScore: number;
+    practicalScore?: number;
+    totalScore: number;
+    grade: string;
+    certificateNumber: string;
+  } | null;
 }
 
 export default function MyCourses() {
@@ -35,7 +42,12 @@ export default function MyCourses() {
       }
     };
 
+    // Initial fetch
     fetchEnrollments();
+
+    // Poll for updates in case enrollment was created elsewhere
+    const interval = setInterval(fetchEnrollments, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -98,7 +110,23 @@ export default function MyCourses() {
                         {enrollment.course.status || 'draft'}
                       </span>
                     </div>
-                    {enrollment.course.status === 'published' ? (
+                    {enrollment.status === 'completed' ? (
+                      enrollment.certificate ? (
+                        <Link
+                          href={`/candidate/my-courses/results/${enrollment._id}`}
+                          className="inline-flex items-center text-white bg-purple-600 hover:bg-purple-700 px-4 py-2 rounded text-sm font-medium transition-colors"
+                        >
+                          Review Results
+                        </Link>
+                      ) : (
+                        <button
+                          disabled
+                          className="inline-flex items-center text-gray-500 bg-gray-200 px-4 py-2 rounded text-sm font-medium cursor-not-allowed"
+                        >
+                          Course Completed ✓
+                        </button>
+                      )
+                    ) : enrollment.course.status === 'published' ? (
                       <Link
                         href={`/candidate/courses/${enrollment.course._id}`}
                         className="inline-flex items-center text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm font-medium transition-colors"

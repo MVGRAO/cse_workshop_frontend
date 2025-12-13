@@ -17,15 +17,13 @@ export default function EmployerSignIn() {
   const [message, setMessage] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   useEffect(() => {
-    const token = getAuthToken();
-    const role = getUserRole();
+    // Check for verifier token specifically
+    const token = getAuthToken('verifier');
+    const role = getUserRole('verifier');
     if (token && role === 'verifier') {
       router.replace('/employer/dashboard');
-    } else if (token && role === 'admin') {
-      router.replace('/admin');
-    } else if (token && role === 'student') {
-      router.replace('/candidate');
     }
+    // Don't redirect if user has different role - let them login as verifier in this tab
   }, [router]);
 
   const emailError = useMemo(() => {
@@ -48,7 +46,15 @@ export default function EmployerSignIn() {
     try {
       setLoadingLogin(true);
       const resp = await verifierLogin(loginForm.email, loginForm.password);
-      storeAuthToken(resp.data.token, resp.data.user.role);
+      
+      // Verify it's a verifier role
+      if (!resp.data.user || resp.data.user.role !== 'verifier') {
+        setMessage({ type: 'error', text: 'This account is not a verifier account. Please use the correct login page.' });
+        setLoadingLogin(false);
+        return;
+      }
+      
+      storeAuthToken(resp.data.token, 'verifier');
       router.push('/employer/dashboard');
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to sign in' });

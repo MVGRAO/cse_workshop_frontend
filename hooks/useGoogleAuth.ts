@@ -73,6 +73,9 @@ export function useGoogleAuth(options: UseGoogleAuthOptions = {}) {
 
             try {
               const authData = await authenticateWithGoogle(response.credential);
+              if (!authData.data.user) {
+                throw new Error('Invalid response from server');
+              }
               storeAuthToken(authData.data.token, authData.data.user.role);
               onSuccessRef.current?.(authData);
             } catch (err) {
@@ -105,6 +108,9 @@ export function useGoogleAuth(options: UseGoogleAuthOptions = {}) {
 
             try {
               const authData = await authenticateWithGoogle(response.credential);
+              if (!authData.data.user) {
+                throw new Error('Invalid response from server');
+              }
               storeAuthToken(authData.data.token, authData.data.user.role);
               onSuccessRef.current?.(authData);
             } catch (err) {

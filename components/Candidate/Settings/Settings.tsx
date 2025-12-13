@@ -30,7 +30,7 @@ const Settings: React.FC = () => {
   // Token validation function
   const validateToken = async () => {
     try {
-      const token = getAuthToken();
+      const token = getAuthToken('student');
       if (!token) {
         console.error('No token found');
         router.push('/candidate');
@@ -40,7 +40,7 @@ const Settings: React.FC = () => {
     } catch (error: any) {
       console.error('Token validation error:', error);
       if (error?.response?.status === 401) {
-        removeAuthToken();
+        removeAuthToken('student');
         router.push('/candidate');
         return false;
       }
@@ -52,8 +52,8 @@ const Settings: React.FC = () => {
   const completeLogout = () => {
     console.log('Performing complete logout...');
 
-    // Clear all possible storage
-    removeAuthToken();
+    // Clear all possible storage (including student token)
+    removeAuthToken('student');
     localStorage.clear();
     sessionStorage.clear();
 
@@ -81,7 +81,7 @@ const Settings: React.FC = () => {
         return;
       }
 
-      const response = await getCurrentUser();
+      const response = await getCurrentUser('student');
       if (response?.success) {
         console.log('getUserProfile called');
         console.log(response.data);
@@ -106,7 +106,7 @@ const Settings: React.FC = () => {
           description: 'Your session has expired. Please log in again.',
           variant: 'error',
         });
-        removeAuthToken();
+        removeAuthToken('student');
         router.push('/candidate');
         return;
       }
@@ -169,7 +169,7 @@ const Settings: React.FC = () => {
           description: 'Your session has expired. Please log in again.',
           variant: 'error',
         });
-        removeAuthToken();
+        removeAuthToken('student');
         router.push('/candidate');
         return;
       }
@@ -212,7 +212,7 @@ const Settings: React.FC = () => {
         setShowDeleteConfirm(false);
         setShowDeleteSuccess(true);
         // Clear all local storage data completely
-        removeAuthToken();
+        removeAuthToken('student');
         localStorage.clear();
 
         // Also clear any session storage

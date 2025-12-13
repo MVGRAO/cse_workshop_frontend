@@ -21,13 +21,14 @@ export function CandidateProfileProvider({ children }: { children: ReactNode }) 
 
   const fetchProfile = async () => {
     try {
-      const token = getAuthToken();
+      // Candidate profile should use student token
+      const token = getAuthToken('student');
       if (!token) {
         setIsLoading(false);
         return;
       }
 
-      const response = await getCurrentUser();
+      const response = await getCurrentUser('student');
       if (response.success && response.data) {
         const userData = response.data;
         setUser(userData);

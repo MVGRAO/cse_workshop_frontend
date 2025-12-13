@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   adminLogin,
   storeAuthToken,
   getAuthToken,
+  getUserRole,
   getAllCourses,
   getCourseDetails,
   deleteCourse,
@@ -16,7 +18,8 @@ import {
   createAssignment,
   publishCourse,
   authenticatedFetch,
-  removeAuthToken
+  removeAuthToken,
+  generateCourseResults
 } from '@/lib/api';
 import { useToast } from '@/components/common/ToastProvider';
 import styles from './admin.module.scss';
@@ -37,13 +40,12 @@ export default function AdminPage() {
 
   // Check authentication status on mount
   useEffect(() => {
-    const token = getAuthToken();
-    const role = typeof window !== 'undefined' ? localStorage.getItem('auth_role') : null;
+    const token = getAuthToken('admin');
+    const role = getUserRole('admin');
     if (token && role === 'admin') {
       setIsAuthenticated(true);
-    } else if (token && role && role !== 'admin') {
-      router.replace(`/${role}`);
     }
+    // Don't redirect if user has different role - let them login as admin in this tab
     setIsLoading(false);
   }, [router]);
 
@@ -69,7 +71,14 @@ export default function AdminPage() {
       const response = await adminLogin(email, password);
 
       if (response.success && response.data?.token) {
-        // Store the token
+        // Admin login response has 'admin' property (not 'user')
+        const adminData = response.data.admin || response.data.user;
+        const role = adminData?.role || 'admin';
+        if (role !== 'admin') {
+          throw new Error('This account is not an admin account.');
+        }
+
+        // Store the token with admin role
         storeAuthToken(response.data.token, 'admin');
         console.log("Admin login successful, token stored");
 
@@ -98,8 +107,8 @@ export default function AdminPage() {
    * Handle logout
    */
   const handleLogout = () => {
-    // Clear token from localStorage
-    removeAuthToken();
+    // Clear admin token from localStorage
+    removeAuthToken('admin');
     setIsAuthenticated(false);
     setEmail("");
     setPassword("");
@@ -274,6 +283,27 @@ function AdminDashboard({ onLogout }: { onLogout: () => void }) {
     setShowDeleteConfirm(null);
   };
 
+  /**
+   * Generate results for a course
+   */
+  const handleGenerateResults = async (courseId: string) => {
+    try {
+      const response = await generateCourseResults(courseId);
+      toast({
+        title: 'Success',
+        description: `Generated ${response.data.generated} certificates. ${response.data.alreadyExists} already existed.`,
+        variant: 'success',
+      });
+      fetchCourses();
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to generate results',
+        variant: 'error',
+      });
+    }
+  };
+
   return (
     <div className={styles.dashboard}>
       <header className={styles.header}>
@@ -424,6 +454,8 @@ function CourseDetailView({
               router.push(`/admin/courses/${course._id}/edit`);
             }}
             className={styles.updateButton}
+            disabled={course.status === 'published'}
+            title={course.status === 'published' ? 'Cannot update published course' : ''}
           >
             Update
           </button>
@@ -431,6 +463,8 @@ function CourseDetailView({
           <button
             onClick={() => setShowDeleteConfirm(true)}
             className={styles.deleteButton}
+            disabled={course.status === 'published'}
+            title={course.status === 'published' ? 'Cannot delete published course' : ''}
           >
             Delete
           </button>
@@ -500,8 +534,8 @@ function CourseDetailView({
                                           </li>
                                         ))}
                                       </ul>
-                                      {q.answerText && (
-                                        <p><strong>Answer:</strong> {q.answerText}</p>
+                                      {q.answerExplanation && (
+                                        <p><strong>Answer:</strong> {q.answerExplanation}</p>
                                       )}
                                     </div>
                                   )}
@@ -565,6 +599,9 @@ function CourseCreationForm({
   const [courseName, setCourseName] = useState('');
   const [courseCode, setCourseCode] = useState('');
   const [numLessons, setNumLessons] = useState(1);
+  const [hasPracticalSession, setHasPracticalSession] = useState(false);
+  const [selectedVerifiers, setSelectedVerifiers] = useState<string[]>([]);
+  const [allVerifiers, setAllVerifiers] = useState<any[]>([]);
   const [createdCourseId, setCreatedCourseId] = useState<string | null>(null);
 
   // Step tracking: 'course' -> 'lesson-setup' -> 'module' -> 'next-lesson' -> ... -> 'complete'
@@ -586,12 +623,30 @@ function CourseCreationForm({
           questionText: string;
           options?: string[];
           correctOptionIndex?: number;
-          answerText?: string; // Answer explanation/text for MCQ
+          answerExplanation?: string; // Answer explanation for short answer questions only
           maxMarks: number;
         }>;
       };
     }>;
   }>>([]);
+
+  /**
+   * Fetch verifiers on mount
+   */
+  useEffect(() => {
+    const fetchVerifiers = async () => {
+      try {
+        const { getUsers } = await import('@/lib/api');
+        const response = await getUsers('verifier');
+        if (response.success && response.data) {
+          setAllVerifiers(response.data);
+        }
+      } catch (error) {
+        console.error('Failed to fetch verifiers:', error);
+      }
+    };
+    fetchVerifiers();
+  }, []);
 
   /**
    * Initialize lessons array when starting lesson setup
@@ -646,6 +701,8 @@ function CourseCreationForm({
         title: courseName,
         code: courseCode.toUpperCase(),
         description: '',
+        verifiers: selectedVerifiers,
+        hasPracticalSession,
       });
 
       if (!courseResponse.success || !courseResponse.data?._id) {
@@ -695,7 +752,6 @@ function CourseCreationForm({
               questionText: '',
               options: ['', '', '', ''],
               correctOptionIndex: 0,
-              answerText: '',
               maxMarks: 10,
             }],
           },
@@ -768,7 +824,6 @@ function CourseCreationForm({
             questionText: '',
             options: ['', '', '', ''],
             correctOptionIndex: 0,
-            answerText: '',
             maxMarks: 10,
           }],
         },
@@ -816,14 +871,13 @@ function CourseCreationForm({
         // Clear options for non-MCQ questions
         question.options = undefined;
         question.correctOptionIndex = undefined;
-        question.answerText = undefined;
       }
     } else if (field === 'maxMarks') {
       question.maxMarks = parseInt(value) || 0;
     } else if (field === 'correctOptionIndex') {
       question.correctOptionIndex = parseInt(value);
-    } else if (field === 'answerText') {
-      question.answerText = value;
+    } else if (field === 'answerExplanation') {
+      question.answerExplanation = value;
     } else if (field.startsWith('option_')) {
       const optIndex = parseInt(field.split('_')[1]);
       if (question.options) {
@@ -851,7 +905,6 @@ function CourseCreationForm({
       questionText: '',
       options: ['', '', '', ''],
       correctOptionIndex: 0,
-      answerText: '',
       maxMarks: 10,
     });
     setLessons(updatedLessons);
@@ -979,7 +1032,7 @@ function CourseCreationForm({
                   questionText: q.questionText,
                   options: q.options,
                   correctOptionIndex: q.correctOptionIndex,
-                  answerText: q.answerText, // Include answer text for MCQ
+                  answerExplanation: q.answerExplanation, // Answer explanation for short answer questions only
                   maxMarks: q.maxMarks,
                 })),
                 maxScore: moduleData.assignment.questions.reduce((sum, q) => sum + q.maxMarks, 0),
@@ -1067,6 +1120,51 @@ function CourseCreationForm({
               required
               disabled={isSubmitting}
             />
+          </div>
+          <div className={styles.formGroup}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={hasPracticalSession}
+                onChange={(e) => setHasPracticalSession(e.target.checked)}
+                disabled={isSubmitting}
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <span>Include Practical Session for this course</span>
+            </label>
+            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '4px' }}>
+              If checked, candidates will have both theoretical and practical evaluations
+            </p>
+          </div>
+          <div className={styles.formGroup}>
+            <label>Select Verifiers *</label>
+            <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #d1d5db', borderRadius: '4px', padding: '8px' }}>
+              {allVerifiers.length === 0 ? (
+                <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>No verifiers available. Please create verifiers first.</p>
+              ) : (
+                allVerifiers.map((verifier) => (
+                  <label key={verifier._id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '4px', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedVerifiers.includes(verifier._id)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setSelectedVerifiers([...selectedVerifiers, verifier._id]);
+                        } else {
+                          setSelectedVerifiers(selectedVerifiers.filter(id => id !== verifier._id));
+                        }
+                      }}
+                      disabled={isSubmitting}
+                      style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                    />
+                    <span>{verifier.name} ({verifier.email})</span>
+                  </label>
+                ))
+              )}
+            </div>
+            <p style={{ fontSize: '0.875rem', color: '#6b7280', marginTop: '4px' }}>
+              Select one or more verifiers who will verify students for this course
+            </p>
           </div>
         </div>
         <div className={styles.formActions}>
@@ -1251,19 +1349,22 @@ function CourseCreationForm({
                       </div>
                     ))}
                   </div>
-                  <div className={styles.formGroup}>
-                    <label>Answer Explanation/Text (for MCQ) *</label>
-                    <textarea
-                      value={question.answerText || ''}
-                      onChange={(e) => handleQuestionChange(questionIndex, 'answerText', e.target.value)}
-                      placeholder="Enter explanation or answer text for the correct option..."
-                      rows={3}
-                      required
-                      className={styles.textarea}
-                      disabled={isSubmitting}
-                    />
-                  </div>
                 </>
+              )}
+
+              {(question.qType === 'short' || question.qType === 'code') && (
+                <div className={styles.formGroup}>
+                  <label>Answer Input/Explanation *</label>
+                  <textarea
+                    value={question.answerExplanation || ''}
+                    onChange={(e) => handleQuestionChange(questionIndex, 'answerExplanation', e.target.value)}
+                    placeholder="Enter the expected answer or explanation for evaluation..."
+                    rows={3}
+                    required
+                    className={styles.textarea}
+                    disabled={isSubmitting}
+                  />
+                </div>
               )}
 
               <div className={styles.formGroup}>
@@ -1331,6 +1432,7 @@ interface CoursesListProps {
   onEditClick: (courseId: string) => void;
   onDeleteClick: (courseId: string) => void;
   onPublishClick: (courseId: string) => void;
+  onGenerateResult?: (courseId: string) => void;
   showDeleteConfirm: string | null;
   onConfirmDelete: (courseId: string) => void;
   onCancelDelete: () => void;
@@ -1346,6 +1448,7 @@ function CoursesList({
   onEditClick,
   onDeleteClick,
   onPublishClick,
+  onGenerateResult,
   showDeleteConfirm,
   onConfirmDelete,
   onCancelDelete,
@@ -1353,6 +1456,12 @@ function CoursesList({
   onConfirmPublish,
   onCancelPublish
 }: CoursesListProps) {
+  const [resultOptionsVisible, setResultOptionsVisible] = useState<{ [key: string]: boolean }>({});
+
+  const toggleResultOptions = (courseId: string) => {
+    setResultOptionsVisible(prev => ({ ...prev, [courseId]: !prev[courseId] }));
+  };
+
   if (isLoading) {
     return <div className={styles.loading}>Loading courses...</div>;
   }
@@ -1390,6 +1499,8 @@ function CoursesList({
                   onEditClick(course._id);
                 }}
                 className={styles.updateButton}
+                disabled={course.status === 'published'}
+                title={course.status === 'published' ? 'Cannot update published course' : ''}
               >
                 Update
               </button>
@@ -1399,6 +1510,8 @@ function CoursesList({
                   onDeleteClick(course._id);
                 }}
                 className={styles.deleteButton}
+                disabled={course.status === 'published'}
+                title={course.status === 'published' ? 'Cannot delete published course' : ''}
               >
                 Delete
               </button>
@@ -1422,6 +1535,46 @@ function CoursesList({
                   Publish Course
                 </button>
               )}
+
+            {course.status === 'published' && onGenerateResult && (
+              <div style={{ width: '100%', marginTop: '0.5rem' }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onGenerateResult(course._id);
+                    toggleResultOptions(course._id);
+                  }}
+                  className={styles.updateButton}
+                  style={{
+                    backgroundColor: '#8b5cf6',
+                    width: '100%'
+                  }}
+                >
+                  Generate Results
+                </button>
+
+                {resultOptionsVisible[course._id] && (
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                    <Link
+                      href={`/admin/courses/${course._id}/results`}
+                      className={styles.updateButton}
+                      style={{ backgroundColor: '#7c3aed', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Review Results
+                    </Link>
+                    <Link
+                      href={`/admin/courses/${course._id}/certificate`}
+                      className={styles.updateButton}
+                      style={{ backgroundColor: '#059669', textAlign: 'center', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.875rem' }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Certificate
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
 
             {showDeleteConfirm === course._id && (
               <div className={styles.deleteConfirmDialog}>

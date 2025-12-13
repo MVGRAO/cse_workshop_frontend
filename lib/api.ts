@@ -9,7 +9,7 @@ export interface AuthResponse {
   message: string;
   data: {
     token: string;
-    user: {
+    user?: {
       id: string;
       name: string;
       email: string;
@@ -21,6 +21,12 @@ export interface AuthResponse {
       phoneNumber?: string;
       location?: string;
       mobile?: string;
+    };
+    admin?: {
+      id: string;
+      name: string;
+      email: string;
+      role: string;
     };
   };
 }
@@ -155,22 +161,48 @@ export async function forgotPassword(email: string): Promise<{ success: boolean;
 }
 
 /**
- * Store authentication token in localStorage
+ * Store authentication token in localStorage with role-specific key
  */
 export function storeAuthToken(token: string, role?: string): void {
   if (typeof window !== 'undefined') {
-    localStorage.setItem('auth_token', token);
     if (role) {
+      // Store with role-specific key to allow separate tabs
+      localStorage.setItem(`${role}_token`, token);
+      localStorage.setItem(`${role}_role`, role);
+      // Also keep auth_token for backward compatibility
+      localStorage.setItem('auth_token', token);
       localStorage.setItem('auth_role', role);
+    } else {
+      localStorage.setItem('auth_token', token);
     }
   }
 }
 
 /**
  * Get authentication token from localStorage
+ * @param role - Optional role to get role-specific token
  */
-export function getAuthToken(): string | null {
+export function getAuthToken(role?: string): string | null {
   if (typeof window !== 'undefined') {
+    if (role) {
+      // Get role-specific token and verify it matches the role
+      const token = localStorage.getItem(`${role}_token`);
+      const storedRole = localStorage.getItem(`${role}_role`);
+      if (token && storedRole === role) {
+        return token;
+      }
+      return null;
+    }
+    // Try to get from current role first
+    const currentRole = getUserRole();
+    if (currentRole) {
+      const roleToken = localStorage.getItem(`${currentRole}_token`);
+      const storedRole = localStorage.getItem(`${currentRole}_role`);
+      if (roleToken && storedRole === currentRole) {
+        return roleToken;
+      }
+    }
+    // Fallback to generic auth_token
     return localStorage.getItem('auth_token');
   }
   return null;
@@ -178,29 +210,77 @@ export function getAuthToken(): string | null {
 
 /**
  * Remove authentication token from localStorage
+ * @param role - Optional role to remove role-specific token
  */
-export function removeAuthToken(): void {
+export function removeAuthToken(role?: string): void {
   if (typeof window !== 'undefined') {
+    if (role) {
+      localStorage.removeItem(`${role}_token`);
+      localStorage.removeItem(`${role}_role`);
+    }
+    // Also clear generic ones
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_role');
+    // Clear all role tokens if no role specified
+    if (!role) {
+      localStorage.removeItem('student_token');
+      localStorage.removeItem('student_role');
+      localStorage.removeItem('verifier_token');
+      localStorage.removeItem('verifier_role');
+      localStorage.removeItem('admin_token');
+      localStorage.removeItem('admin_role');
+    }
   }
 }
 
 /**
  * Get user role from localStorage
+ * @param role - Optional role to check if that role is active
  */
-export function getUserRole(): string | null {
+export function getUserRole(role?: string): string | null {
   if (typeof window !== 'undefined') {
+    if (role) {
+      // Check role-specific token and role
+      const token = localStorage.getItem(`${role}_token`);
+      const storedRole = localStorage.getItem(`${role}_role`);
+      if (token && storedRole === role) {
+        return role;
+      }
+      return null;
+    }
+    // Check all roles in priority order (admin, verifier, student)
+    const roles = ['admin', 'verifier', 'student'];
+    for (const r of roles) {
+      const token = localStorage.getItem(`${r}_token`);
+      const storedRole = localStorage.getItem(`${r}_role`);
+      if (token && storedRole === r) {
+        return r;
+      }
+    }
+    // Fallback to generic auth_role
     return localStorage.getItem('auth_role');
   }
   return null;
 }
 
 /**
- * Get current user profile
+ * Check if a specific role has a token (for multi-tab support)
  */
-export async function getCurrentUser(): Promise<any> {
-  const token = getAuthToken();
+export function hasRoleToken(role: string): boolean {
+  if (typeof window !== 'undefined') {
+    return !!localStorage.getItem(`${role}_token`);
+  }
+  return false;
+}
+
+/**
+ * Get current user profile
+ * @param role - Optional role to get role-specific token (defaults to checking all roles)
+ */
+export async function getCurrentUser(role?: string): Promise<any> {
+  // Try role-specific token first if provided
+  let token = role ? getAuthToken(role) : getAuthToken();
+  
   if (!token) {
     throw new Error('No authentication token found');
   }
@@ -315,9 +395,30 @@ export async function adminLogin(email: string, password: string): Promise<AuthR
  */
 export async function authenticatedFetch(
   url: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  role?: string
 ): Promise<Response> {
-  const token = getAuthToken();
+  // Try to determine role from URL if not provided
+  let targetRole = role;
+  if (!targetRole) {
+    if (url.includes('/admin/')) {
+      targetRole = 'admin';
+    } else if (url.includes('/verifier/')) {
+      targetRole = 'verifier';
+    } else if (url.includes('/student/')) {
+      targetRole = 'student';
+    } else {
+      // Get current role from storage
+      targetRole = getUserRole() || undefined;
+    }
+  }
+
+  // Try role-specific token first, then fallback to generic
+  let token = targetRole ? getAuthToken(targetRole) : null;
+  if (!token) {
+    token = getAuthToken();
+  }
+
   if (!token) {
     throw new Error('No authentication token found');
   }
@@ -360,6 +461,8 @@ export async function createCourse(courseData: {
   description?: string;
   category?: string;
   level?: string;
+  verifiers?: string[];
+  hasPracticalSession?: boolean;
 }): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses`, {
     method: 'POST',
@@ -387,6 +490,23 @@ export async function getLessonsByCourse(courseId: string): Promise<any> {
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to fetch lessons');
+  }
+
+  return data;
+}
+
+/**
+ * Get course results (admin only)
+ */
+export async function getCourseResults(courseId: string): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses/${courseId}/results`, {
+    method: 'GET',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch course results');
   }
 
   return data;
@@ -485,7 +605,7 @@ export async function createAssignment(assignmentData: {
     questionText: string;
     options?: string[];
     correctOptionIndex?: number;
-    answerText?: string;
+    answerExplanation?: string;
     maxMarks: number;
   }>;
   description?: string;
@@ -510,9 +630,9 @@ export async function createAssignment(assignmentData: {
  * Get student course details (modules/lessons)
  */
 export async function getStudentCourseDetails(courseId: string): Promise<any> {
-  const response = await authenticatedFetch(`${API_BASE_URL}/courses/${courseId}/modules`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/student/courses/${courseId}/modules`, {
     method: 'GET',
-  });
+  }, 'student');
 
   const data = await response.json();
 
@@ -553,6 +673,23 @@ export async function getStudentEnrollments(): Promise<any> {
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to fetch enrollments');
+  }
+
+  return data;
+}
+
+/**
+ * Complete enrollment (mark as completed when student finishes all modules)
+ */
+export async function completeEnrollment(enrollmentId: string): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/student/enrollments/${enrollmentId}/complete`, {
+    method: 'POST',
+  }, 'student');
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to complete enrollment');
   }
 
   return data;
@@ -666,6 +803,190 @@ export async function publishCourse(courseId: string): Promise<any> {
 }
 
 /**
+ * Start assignment submission
+ */
+export async function startSubmission(assignmentId: string): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/student/assignments/${assignmentId}/start`, {
+    method: 'POST',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to start submission');
+  }
+
+  return data;
+}
+
+/**
+ * Submit assignment
+ */
+export async function submitAssignment(assignmentId: string, submissionData: {
+  submissionId: string;
+    answers: Array<{
+      questionId: string;
+      selectedOptionIndex?: number;
+      answerText?: string;
+    }>;
+  tabSwitchCount?: number;
+}): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/student/assignments/${assignmentId}/submit`, {
+    method: 'POST',
+    body: JSON.stringify(submissionData),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to submit assignment');
+  }
+
+  return data;
+}
+
+/**
+ * Verifier API functions
+ */
+
+/**
+ * Get verifier overview (stats)
+ */
+export async function getVerifierOverview(): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/verifier/overview`, {
+    method: 'GET',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch verifier overview');
+  }
+
+  return data;
+}
+
+/**
+ * Get verifier's students
+ */
+export async function getVerifierStudents(): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/verifier/students`, {
+    method: 'GET',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch verifier students');
+  }
+
+  return data;
+}
+
+/**
+ * Get completed students for verification
+ */
+export async function getCompletedStudentsForVerification(): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/verifier/completed-students`, {
+    method: 'GET',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch completed students');
+  }
+
+  return data;
+}
+
+/**
+ * Get verified students (with certificates)
+ */
+export async function getVerifiedStudents(): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/verifier/verified-students`, {
+    method: 'GET',
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch verified students');
+  }
+
+  return data;
+}
+
+/**
+ * Get student certificates
+ */
+export async function getStudentCertificates(): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/student/certificates`, {
+    method: 'GET',
+  }, 'student');
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch certificates');
+  }
+
+  return data;
+}
+
+/**
+ * Get certificate by ID
+ */
+export async function getCertificate(certificateId: string): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/student/certificates/${certificateId}`, {
+    method: 'GET',
+  }, 'student');
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to fetch certificate');
+  }
+
+  return data;
+}
+
+/**
+ * Generate course results (admin only)
+ */
+export async function generateCourseResults(courseId: string): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses/${courseId}/generate-results`, {
+    method: 'POST',
+  }, 'admin');
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to generate results');
+  }
+
+  return data;
+}
+
+/**
+ * Verify enrollment and generate certificate
+ */
+export async function verifyAndGenerateCertificate(enrollmentId: string, practicalScore?: number): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/verifier/enrollments/${enrollmentId}/verify`, {
+    method: 'POST',
+    body: JSON.stringify({ practicalScore }),
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to verify and generate certificate');
+  }
+
+  return data;
+}
+
+/**
  * Submit verifier access request (public)
  */
 export async function submitVerifierRequest(payload: {
@@ -743,20 +1064,4 @@ export async function rejectVerifierRequest(id: string): Promise<any> {
   return data;
 }
 
-/**
- * Verifier overview stats
- */
-export async function getVerifierOverview(): Promise<any> {
-  const response = await authenticatedFetch(`${API_BASE_URL}/verifier/overview`, {
-    method: 'GET',
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch overview');
-  }
-
-  return data;
-}
 

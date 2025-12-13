@@ -13,13 +13,15 @@ export default function CandidateLayout({
 }) {
   const pathname = usePathname();
   const isSignInPage = pathname === '/candidate';
+  // Hide sidebar when student is taking a course (course player page)
+  const isCoursePlayerPage = pathname?.match(/^\/candidate\/courses\/[^/]+$/);
 
   return (
     <SidebarProvider>
       <CandidateProfileProvider>
-        {!isSignInPage && <CandidateNavbar />}
-        {!isSignInPage && <CandidateSidebar />}
-        <div className={isSignInPage ? '' : 'ml-[280px] mr-6 mt-[90px] mb-6'}>
+        {!isSignInPage && !isCoursePlayerPage && <CandidateNavbar />}
+        {!isSignInPage && !isCoursePlayerPage && <CandidateSidebar />}
+        <div className={isSignInPage || isCoursePlayerPage ? '' : 'ml-[280px] mr-6 mt-[90px] mb-6'}>
           {children}
         </div>
       </CandidateProfileProvider>

@@ -30,6 +30,11 @@ export default function EmailPasswordAuth({ onSuccess, onError }: EmailPasswordA
       if (isLogin) {
         // Login
         const response = await login(formData.email, formData.password);
+        if (!response.data.user) {
+          onError('Invalid response from server');
+          setLoading(false);
+          return;
+        }
         storeAuthToken(response.data.token, response.data.user.role);
         onSuccess();
       } else {
@@ -54,6 +59,11 @@ export default function EmailPasswordAuth({ onSuccess, onError }: EmailPasswordA
           formData.classYear || undefined,
           formData.mobile || undefined
         );
+        if (!response.data.user) {
+          onError('Invalid response from server');
+          setLoading(false);
+          return;
+        }
         storeAuthToken(response.data.token, response.data.user.role);
         onSuccess();
       }

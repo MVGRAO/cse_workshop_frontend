@@ -15,6 +15,9 @@ interface Course {
   description: string;
   status: string;
   enrolled?: boolean;
+  enrollment?: any;
+  certificate?: any;
+  showResultsOptions?: boolean;
   verifiers?: { _id: string; name: string; email: string }[];
   availableVerifiers?: { _id: string; name: string; email: string }[];
 }
@@ -43,33 +46,51 @@ export default function CandidateCourses() {
   const fetchData = async () => {
     try {
       setLoading(true);
-      const token = getAuthToken();
+      const token = getAuthToken('student');
       if (!token) return;
 
-      // Parallel fetch courses and enrollments
-      const [coursesRes, enrollmentsRes] = await Promise.all([
+      // Parallel fetch courses, enrollments, and certificates
+      const [coursesRes, enrollmentsRes, certificatesRes] = await Promise.all([
         fetch(`${API_BASE_URL}/student/courses/available`, {
           headers: { 'Authorization': `Bearer ${token}` }
         }),
-        getStudentEnrollments().catch(() => ({ data: [] }))
+        getStudentEnrollments().catch(() => ({ data: [] })),
+        fetch(`${API_BASE_URL}/student/certificates`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        }).then(res => res.json()).catch(() => ({ data: [] }))
       ]);
 
       if (coursesRes.ok) {
         const coursesData = await coursesRes.json();
         const enrollmentsData = enrollmentsRes.data || [];
+        const certificatesData = certificatesRes.data || [];
 
-        // Extract course IDs from enrollments
-        const enrolledCourseIds = new Set(enrollmentsData.map((e: any) => {
-          const id = e.course?._id || e.course;
-          return typeof id === 'object' ? id.toString() : id;
-        }));
+        // Create specialized maps
+        const enrollmentMap = new Map();
+        enrollmentsData.forEach((e: any) => {
+          // Handle both populated and unpopulated course fields
+          const courseId = (e.course?._id || e.course).toString();
+          enrollmentMap.set(courseId, e);
+        });
+
+        const certificateMap = new Map();
+        certificatesData.forEach((c: any) => {
+          const courseId = (c.course?._id || c.course).toString();
+          certificateMap.set(courseId, c);
+        });
 
         if (coursesData.success) {
-          const formattedCourses = (coursesData.data || []).map((course: any) => ({
-            ...course,
-            verifiers: course.availableVerifiers || course.verifiers || [],
-            enrolled: enrolledCourseIds.has(course._id)
-          }));
+          const formattedCourses = (coursesData.data || []).map((course: any) => {
+            const enrollment = enrollmentMap.get(course._id);
+            return {
+              ...course,
+              verifiers: course.availableVerifiers || course.verifiers || [],
+              enrolled: !!enrollment,
+              enrollment,
+              certificate: certificateMap.get(course._id),
+              showResultsOptions: false
+            };
+          });
           setCourses(formattedCourses);
         }
       }
@@ -91,6 +112,12 @@ export default function CandidateCourses() {
       mobile: '',
       verifierId: course.verifiers?.[0]?._id || '',
     });
+  };
+
+  const toggleResults = (courseId: string) => {
+    setCourses(prev => prev.map(c =>
+      c._id === courseId ? { ...c, showResultsOptions: !c.showResultsOptions } : c
+    ));
   };
 
   const handleEnroll = async (e: React.FormEvent) => {
@@ -116,9 +143,8 @@ export default function CandidateCourses() {
         variant: 'success',
       });
 
-      setCourses(prev => prev.map(c =>
-        c._id === selectedCourse._id ? { ...c, enrolled: true } : c
-      ));
+      // Refresh the courses list to reflect the new enrollment
+      await fetchData();
       setShowForm(false);
       setSelectedCourse(null);
     } catch (error: any) {
@@ -154,34 +180,84 @@ export default function CandidateCourses() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {courses.map((course) => (
-                <div key={course._id} className="bg-white rounded-lg shadow overflow-hidden">
-                  <div className="h-48 bg-gradient-to-r from-blue-500 to-blue-600"></div>
-                  <div className="p-6">
+                <div key={course._id} className="bg-white rounded-lg shadow overflow-hidden flex flex-col h-full">
+                  <div className="h-48 bg-gradient-to-r from-blue-500 to-blue-600 shrink-0"></div>
+                  <div className="p-6 flex flex-col flex-grow">
                     <h3 className="text-xl font-semibold text-gray-900 mb-2">
                       {course.title}
                     </h3>
                     <p className="text-gray-600 mb-4 line-clamp-3">
                       {course.description || 'No description available'}
                     </p>
-                    {course.enrolled ? (
-                      <div className="flex gap-3">
-                        <button
-                          disabled
-                          className="w-full bg-gray-100 text-gray-400 px-4 py-2 rounded cursor-not-allowed border border-gray-200"
-                        >
-                          Already Enrolled
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => openEnrollForm(course)}
-                          className="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors"
-                        >
-                          Enroll
-                        </button>
-                      </div>
-                    )}
+
+                    <div className="mt-auto">
+                      {course.enrolled ? (
+                        <div className="space-y-3">
+                          <button
+                            disabled
+                            className="w-full bg-gray-100 text-gray-400 px-4 py-2 rounded cursor-not-allowed border border-gray-200 text-sm font-medium"
+                          >
+                            Already Enrolled
+                          </button>
+
+                          {/* Generate Results Option */}
+                          {course.enrollment?.status === 'completed' && (
+                            <div className="border-t pt-3 mt-3">
+                              <button
+                                onClick={() => toggleResults(course._id)}
+                                className="w-full bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                              >
+                                <span>Generate Results</span>
+                                <svg
+                                  className={`w-4 h-4 transition-transform ${course.showResultsOptions ? 'rotate-180' : ''}`}
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                </svg>
+                              </button>
+
+                              {course.showResultsOptions && (
+                                <div className="grid grid-cols-2 gap-2 mt-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                                  <Link
+                                    href={`/candidate/my-courses/results/${course.enrollment._id}`}
+                                    className="bg-purple-50 text-purple-700 border border-purple-200 px-3 py-2 rounded text-center text-sm font-medium hover:bg-purple-100 transition-colors"
+                                  >
+                                    Review Results
+                                  </Link>
+                                  {course.certificate ? (
+                                    <Link
+                                      href={`/candidate/certificates/${course.certificate._id}`}
+                                      className="bg-green-50 text-green-700 border border-green-200 px-3 py-2 rounded text-center text-sm font-medium hover:bg-green-100 transition-colors"
+                                    >
+                                      Certificate
+                                    </Link>
+                                  ) : (
+                                    <button
+                                      disabled
+                                      className="bg-gray-50 text-gray-400 border border-gray-200 px-3 py-2 rounded text-center text-sm font-medium cursor-not-allowed"
+                                      title="Certificate not issued yet"
+                                    >
+                                      No Certificate
+                                    </button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => openEnrollForm(course)}
+                            className="flex-1 bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 transition-colors font-medium"
+                          >
+                            Enroll
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

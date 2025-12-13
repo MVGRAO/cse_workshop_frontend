@@ -32,9 +32,9 @@ export default function VerifierRequestsPage() {
   const [busyId, setBusyId] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = getAuthToken();
-    const role = getUserRole();
-    if (!token) {
+    const token = getAuthToken('admin');
+    const role = getUserRole('admin');
+    if (!token || role !== 'admin') {
       router.replace('/admin');
       return;
     }

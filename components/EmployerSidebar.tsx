@@ -3,23 +3,38 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronRight, Settings, BookOpen, GraduationCap, MessageSquare, Home, Award } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings, BookOpen, CheckCircle, MessageSquare, Home } from 'lucide-react';
 import { useSidebar } from '@/context/SidebarContext';
-import { useCandidateProfile } from '@/context/CandidateProfileContext';
+import { getCurrentUser } from '@/lib/api';
 import styles from '@/styles/sidebar.module.scss';
 
-const CandidateSidebar: React.FC = () => {
+const EmployerSidebar: React.FC = () => {
   const pathname = usePathname();
-  const { profileUrl, userName } = useCandidateProfile();
   const { isExpanded, setIsExpanded } = useSidebar();
+  const [userName, setUserName] = useState('Verifier');
+  const [profileUrl, setProfileUrl] = useState('');
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const user = await getCurrentUser('verifier');
+        if (user?.data) {
+          setUserName(user.data.name || 'Verifier');
+          setProfileUrl(user.data.avatarUrl || '');
+        }
+      } catch (error) {
+        console.error('Failed to fetch user:', error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const menuItems = [
-    { icon: <Home size={20} />, label: 'Dashboard', path: '/candidate/dashboard' },
-    { icon: <BookOpen size={20} />, label: 'Courses', path: '/candidate/courses' },
-    { icon: <GraduationCap size={20} />, label: 'My Courses', path: '/candidate/my-courses' },
-    { icon: <Award size={20} />, label: 'Certificates', path: '/candidate/certificates' },
-    { icon: <Settings size={20} />, label: 'Settings', path: '/candidate/settings' },
-    { icon: <MessageSquare size={20} />, label: 'Contact Us', path: '/candidate/feedback' },
+    { icon: <Home size={20} />, label: 'Dashboard', path: '/employer/dashboard' },
+    { icon: <BookOpen size={20} />, label: 'Courses', path: '/employer/courses' },
+    { icon: <CheckCircle size={20} />, label: 'Verification', path: '/employer/verification' },
+    { icon: <Settings size={20} />, label: 'Settings', path: '/employer/settings' },
+    { icon: <MessageSquare size={20} />, label: 'Contact Us', path: '/employer/contact' },
   ];
 
   return (
@@ -34,7 +49,7 @@ const CandidateSidebar: React.FC = () => {
 
       {/* Sidebar Header */}
       <div className={styles.sidebarHeader}>
-        {isExpanded && <div className={styles.sidebarBadge}>STUDENT</div>}
+        {isExpanded && <div className={styles.sidebarBadge} style={{ backgroundColor: '#10b981' }}>VERIFIER</div>}
         <div className={styles.sidebarAvatar}>
           <img
             src={profileUrl || 'https://toppng.com//public/uploads/preview/donna-picarro-dummy-avatar-115633298255iautrofxa.png'}
@@ -65,5 +80,6 @@ const CandidateSidebar: React.FC = () => {
   );
 };
 
-export default CandidateSidebar;
+export default EmployerSidebar;
+
 
