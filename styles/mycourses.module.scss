@@ -1,0 +1,235 @@
+.myCoursesContainer {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  padding: 2rem;
+//   border-radius: 15px;
+}
+
+.contentWrapper {
+  max-width: 80rem;
+  margin: 0 auto;
+}
+
+.title {
+  font-size: 1.875rem;
+  font-weight: bold;
+  color: #111827;
+  margin-bottom: 2rem;
+}
+
+.loadingState {
+  text-align: center;
+  padding: 3rem 0;
+
+  p {
+    margin-top: 1rem;
+    color: #111827;
+    font-weight: 500;
+    font-size: 1rem;
+  }
+}
+
+.spinner {
+  display: inline-block;
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid #fecaca;
+  border-top-color: #dc2626;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.emptyState {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+
+  p {
+    color: #6b7280;
+  }
+}
+
+.browseLink {
+  margin-top: 1rem;
+  display: inline-block;
+  color: #dc2626;
+  text-decoration: none;
+
+  &:hover {
+    color: #b91c1c;
+  }
+}
+
+.coursesGrid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+  gap: 1.5rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.courseCard {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  padding: 1.5rem;
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
+}
+
+.courseTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 0.5rem;
+}
+
+.courseDescription {
+  color: #4b5563;
+  margin-bottom: 1rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.progressSection {
+  margin-bottom: 1rem;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: #4b5563;
+  margin-bottom: 0.25rem;
+}
+
+.progressBar {
+  width: 100%;
+  background-color: #e5e7eb;
+  border-radius: 9999px;
+  height: 0.5rem;
+}
+
+.progressFill {
+  background-color: #dc2626;
+  height: 0.5rem;
+  border-radius: 9999px;
+  transition: width 0.3s;
+}
+
+.cardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badges {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+
+  &.badgeGreen {
+    background-color: #dcfce7;
+    color: #166534;
+  }
+
+  &.badgeBlue {
+    background-color: #dbeafe;
+    color: #1e40af;
+  }
+
+  &.badgeEmerald {
+    background-color: #d1fae5;
+    color: #065f46;
+  }
+
+  &.badgeGray {
+    background-color: #f3f4f6;
+    color: #374151;
+  }
+}
+
+.resultsButton {
+  display: inline-flex;
+  align-items: center;
+  color: white;
+  background-color: #dc2626;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #b91c1c;
+  }
+}
+
+.completedButton {
+  display: inline-flex;
+  align-items: center;
+  color: #6b7280;
+  background-color: #e5e7eb;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: not-allowed;
+}
+
+.startButton {
+  display: inline-flex;
+  align-items: center;
+  color: white;
+  background-color: #dc2626;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: #b91c1c;
+  }
+}
+
+.disabledButton {
+  display: inline-flex;
+  align-items: center;
+  color: #6b7280;
+  background-color: #e5e7eb;
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: none;
+  cursor: not-allowed;
+}

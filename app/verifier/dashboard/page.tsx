@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/components/common/ToastProvider';
-import styles from '../verifier.module.scss';
+import styles from '@/styles/verifier.module.scss';
 
 /**
  * Verifier Dashboard

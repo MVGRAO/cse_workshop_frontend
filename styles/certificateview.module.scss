@@ -1,0 +1,273 @@
+@use "sass:color";
+
+.loadingContainer {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #f9fafb;
+  gap: 1rem;
+}
+
+.spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid #fecaca;
+  border-top-color: #dc2626;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingText {
+  color: #111827;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.errorContainer {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  padding: 2rem;
+}
+
+.errorCard {
+  max-width: 64rem;
+  margin: 0 auto;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 1.5rem;
+}
+
+.errorText {
+  color: #6b7280;
+  margin: 0 0 1rem 0;
+}
+
+.backButton {
+  margin-top: 1rem;
+  padding: 0.5rem 1rem;
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 1rem;
+
+  &:hover {
+    background-color: #b91c1c;
+  }
+}
+
+.container {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  padding: 2rem;
+}
+
+.header {
+  max-width: 96rem;
+  margin: 0 auto 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.backLink {
+  color: #dc2626;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+
+  &:hover {
+    color: #b91c1c;
+    text-decoration: underline;
+  }
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.printButton {
+  padding: 0.5rem 1rem;
+  background-color: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #b91c1c;
+  }
+}
+
+.downloadButton {
+  padding: 0.5rem 1rem;
+  background-color: #16a34a;
+  color: white;
+  border: none;
+  border-radius: 0.25rem;
+  cursor: pointer;
+
+  &:hover {
+    background-color: #15803d;
+  }
+}
+
+.certificateWrapper {
+  max-width: 96rem;
+  margin: 0 auto;
+  background: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+
+  @media print {
+    box-shadow: none;
+    padding: 0;
+  }
+}
+
+.certificateBackground {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  padding: 2.5rem;
+  min-height: 600px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.certificateCard {
+  background: white;
+  padding: 3.75rem;
+  border: 20px solid #d4af37;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+  max-width: 1000px;
+  text-align: center;
+  width: 100%;
+}
+
+.certificateHeader {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #2c3e50;
+  margin-bottom: 1.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.25rem;
+}
+
+.certificateSubtitle {
+  font-size: 1.5rem;
+  color: #7f8c8d;
+  margin-bottom: 2.5rem;
+}
+
+.studentName {
+  font-size: 2.25rem;
+  font-weight: bold;
+  color: #2c3e50;
+  text-decoration: underline;
+  margin: 1.25rem 0;
+}
+
+.certificateBody {
+  font-size: 1.75rem;
+  color: #2c3e50;
+  margin: 2.5rem 0;
+  line-height: 1.8;
+}
+
+.courseName {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #667eea;
+  margin: 1.25rem 0;
+}
+
+.courseCode {
+  font-size: 1.5rem;
+  color: #7f8c8d;
+  margin-bottom: 2.5rem;
+}
+
+.scoresContainer {
+  margin: 2.5rem 0;
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+  flex-wrap: wrap;
+}
+
+.scoreItem {
+  text-align: center;
+}
+
+.scoreLabel {
+  font-size: 1.125rem;
+  color: #7f8c8d;
+  margin-bottom: 0.625rem;
+}
+
+.scoreValue {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #2c3e50;
+}
+
+.grade {
+  font-size: 3rem;
+  font-weight: bold;
+  color: #27ae60;
+  margin: 1.875rem 0;
+}
+
+.signatureLine {
+  border-top: 2px solid #2c3e50;
+  width: 200px;
+  margin: 3.75rem auto 0.625rem;
+}
+
+.signatureText {
+  font-size: 1.125rem;
+  color: #2c3e50;
+  margin-top: 0.625rem;
+}
+
+.certificateFooter {
+  margin-top: 3.75rem;
+  display: flex;
+  justify-content: space-between;
+  font-size: 1rem;
+  color: #7f8c8d;
+}
+
+.footerLabel {
+  font-weight: bold;
+  margin-bottom: 0.3125rem;
+}
+
+.footerValue {
+  color: #7f8c8d;
+}
+
+@media print {
+  .header {
+    display: none;
+  }
+
+  .certificateWrapper {
+    margin: 0;
+    padding: 0;
+  }
+}

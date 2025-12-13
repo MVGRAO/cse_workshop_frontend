@@ -441,7 +441,7 @@ export async function authenticatedFetch(
 export async function getAllCourses(): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses`, {
     method: 'GET',
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -467,7 +467,7 @@ export async function createCourse(courseData: {
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses`, {
     method: 'POST',
     body: JSON.stringify(courseData),
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -484,7 +484,7 @@ export async function createCourse(courseData: {
 export async function getLessonsByCourse(courseId: string): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses/${courseId}/lessons`, {
     method: 'GET',
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -501,7 +501,7 @@ export async function getLessonsByCourse(courseId: string): Promise<any> {
 export async function getCourseResults(courseId: string): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses/${courseId}/results`, {
     method: 'GET',
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -523,7 +523,7 @@ export async function createLesson(courseId: string, lessonData: {
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses/${courseId}/lessons`, {
     method: 'POST',
     body: JSON.stringify(lessonData),
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -548,7 +548,7 @@ export async function createModule(lessonId: string, moduleData: {
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/lessons/${lessonId}/modules`, {
     method: 'POST',
     body: JSON.stringify(moduleData),
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -565,7 +565,7 @@ export async function createModule(lessonId: string, moduleData: {
 export async function getCourseDetails(courseId: string): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses/${courseId}`, {
     method: 'GET',
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -582,7 +582,7 @@ export async function getCourseDetails(courseId: string): Promise<any> {
 export async function deleteCourse(courseId: string): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses/${courseId}`, {
     method: 'DELETE',
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -615,7 +615,7 @@ export async function createAssignment(assignmentData: {
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/assignments`, {
     method: 'POST',
     body: JSON.stringify(assignmentData),
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -702,7 +702,7 @@ export async function updateCourse(courseId: string, courseData: any): Promise<a
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses/${courseId}`, {
     method: 'PATCH',
     body: JSON.stringify(courseData),
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -720,7 +720,7 @@ export async function updateLesson(lessonId: string, lessonData: any): Promise<a
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/lessons/${lessonId}`, {
     method: 'PATCH',
     body: JSON.stringify(lessonData),
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -738,7 +738,7 @@ export async function updateModule(moduleId: string, moduleData: any): Promise<a
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/modules/${moduleId}`, {
     method: 'PATCH',
     body: JSON.stringify(moduleData),
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -756,7 +756,7 @@ export async function updateAssignment(assignmentId: string, assignmentData: any
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/assignments/${assignmentId}`, {
     method: 'PATCH',
     body: JSON.stringify(assignmentData),
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -774,7 +774,7 @@ export async function getUsers(role?: string): Promise<any> {
   const queryParams = role ? `?role=${role}` : '';
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/users${queryParams}`, {
     method: 'GET',
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -791,7 +791,7 @@ export async function getUsers(role?: string): Promise<any> {
 export async function publishCourse(courseId: string): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses/${courseId}/publish`, {
     method: 'POST',
-  });
+  }, 'admin');
 
   const data = await response.json();
 
