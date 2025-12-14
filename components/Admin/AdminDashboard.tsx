@@ -164,9 +164,9 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
   const { toast } = useToast();
   const [courses, setCourses] = useState<any[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
-  const [showCourseForm, setShowCourseForm] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showPublishConfirm, setShowPublishConfirm] = useState<string | null>(null);
+  const [creatingCourse, setCreatingCourse] = useState(false);
 
   useEffect(() => {
     fetchCourses();
@@ -246,6 +246,10 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
     }
   };
 
+  const handleCreateCourse = () => {
+    router.push('/admin/courses/new');
+  };
+
   return (
     <div className={styles.dashboard}>
       <header className={styles.header}>
@@ -264,11 +268,12 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
           >
             View Requests
           </button>
-          {!showCourseForm && (
-            <button onClick={() => setShowCourseForm(true)} className={styles.addCourseButton}>
-              + Add Course
-            </button>
-          )}
+          <button
+            onClick={handleCreateCourse}
+            className={styles.addCourseButton}
+          >
+            + Add Course
+          </button>
         </div>
 
         {isLoadingCourses ? (

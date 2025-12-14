@@ -8,4 +8,3 @@ export default async function CourseResultsPage({ params }: PageProps) {
   const { courseId } = await params;
   return <CourseResults courseId={courseId} />;
 }
-

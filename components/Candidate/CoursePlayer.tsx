@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getStudentCourseDetails, startSubmission, submitAssignment, getStudentEnrollments, completeEnrollment } from '@/lib/api';
+import { getStudentCourseDetails, startSubmission, submitAssignment, getStudentEnrollments, completeEnrollment, getCurrentUser } from '@/lib/api';
 import { useToast } from '@/components/common/ToastProvider';
+import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import styles from '@/styles/courseplayer.module.scss';
 
 interface Question {
@@ -55,11 +56,41 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
     const [answers, setAnswers] = useState<{ [key: string]: any }>({});
     const [moduleCompleted, setModuleCompleted] = useState<Set<string>>(new Set());
     const [enrollmentId, setEnrollmentId] = useState<string | null>(null);
+    const [user, setUser] = useState<any>(null);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isMobile, setIsMobile] = useState(false);
 
     useEffect(() => {
+        const checkMobile = () => {
+            const mobile = window.innerWidth < 1024;
+            setIsMobile(mobile);
+            if (mobile) {
+                setIsSidebarOpen(false);
+            } else {
+                setIsSidebarOpen(true);
+            }
+        };
+
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+
         fetchCourseContent();
         fetchEnrollmentId();
+        fetchUserData();
+
+        return () => window.removeEventListener('resize', checkMobile);
     }, []);
+
+    const fetchUserData = async () => {
+        try {
+            const userData = await getCurrentUser();
+            if (userData && userData.success) {
+                setUser(userData.data.user || userData.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch user:', error);
+        }
+    };
 
     const fetchEnrollmentId = async () => {
         try {
@@ -188,7 +219,7 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
 
     const moveToNext = () => {
         const currentLesson = lessons[currentLessonIndex];
-        
+
         if (currentModuleIndex < currentLesson.modules.length - 1) {
             setCurrentModuleIndex(currentModuleIndex + 1);
         } else {
@@ -334,109 +365,262 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
     const currentModule = getCurrentModule();
     const currentLesson = lessons[currentLessonIndex];
 
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
     return (
-        <div className={styles.container}>
-            <div className={styles.header}>
-                <div className={styles.headerContent}>
-                    <div>
-                        <button onClick={() => router.push('/candidate/my-courses')} className={styles.backButton}>
-                            ← Back to My Courses
-                        </button>
-                        <h2 className={styles.lessonTitle}>
-                            Lesson {currentLessonIndex + 1} of {lessons.length}: {currentLesson?.title}
-                        </h2>
-                        <p className={styles.moduleInfo}>
-                            Module {currentModuleIndex + 1} of {currentLesson?.modules.length}
-                        </p>
+        <div className={styles.layoutContainer}>
+            {/* Mobile Overlay */}
+            {isMobile && isSidebarOpen && (
+                <div
+                    className={styles.mobileOverlay}
+                    onClick={() => setIsSidebarOpen(false)}
+                />
+            )}
+
+            {/* Sidebar */}
+            <div className={`${styles.sidebar} ${!isSidebarOpen ? styles.sidebarCollapsed : ''} ${isMobile && isSidebarOpen ? styles.sidebarMobileOpen : ''}`}>
+                <div className={styles.sidebarHeader}>
+                    <div className={styles.sidebarTopRow}>
+                        {user && (
+                            <div className={styles.profileSection}>
+                                <div className={styles.avatar}>
+                                    {user.avatarUrl ? (
+                                        <img src={user.avatarUrl} alt={user.name} />
+                                    ) : (
+                                        <span>{user.name?.charAt(0).toUpperCase() || 'U'}</span>
+                                    )}
+                                </div>
+                                <div className={styles.profileInfo}>
+                                    <span className={styles.profileName}>{user.name}</span>
+                                    <span className={styles.profileEmail}>{user.email}</span>
+                                </div>
+                            </div>
+                        )}
+                        {isMobile && (
+                            <button onClick={() => setIsSidebarOpen(false)} className={styles.mobileCloseButton}>
+                                <X size={20} />
+                            </button>
+                        )}
                     </div>
-                    <div className={styles.progress}>
-                        Progress: {Math.round(((currentLessonIndex * 100 + ((currentModuleIndex + 1) / (currentLesson?.modules.length || 1)) * 100) / lessons.length))}%
+
+                    <h2 className={styles.courseTitle}>Course Content</h2>
+                    <div className={styles.progressSection}>
+                        <div className={styles.progressBar}>
+                            <div
+                                className={styles.progressFill}
+                                style={{ width: `${Math.round(((currentLessonIndex * 100 + ((currentModuleIndex + 1) / (lessons[currentLessonIndex]?.modules.length || 1)) * 100) / lessons.length))}%` }}
+                            ></div>
+                        </div>
+                        <span className={styles.progressText}>
+                            {Math.round(((currentLessonIndex * 100 + ((currentModuleIndex + 1) / (lessons[currentLessonIndex]?.modules.length || 1)) * 100) / lessons.length))}% Complete
+                        </span>
                     </div>
+                </div>
+
+                <div className={styles.modulesList}>
+                    {lessons.map((lesson, lIdx) => (
+                        <div key={lesson.lessonId || lIdx} className={styles.lessonGroup}>
+                            <div className={styles.lessonTitle}>
+                                {lesson.title}
+                                <span className={styles.lessonDuration}>Lesson {lIdx + 1}</span>
+                            </div>
+
+                            {lesson.modules.map((module, mIdx) => {
+                                const isActive = currentLessonIndex === lIdx && currentModuleIndex === mIdx;
+                                const isCompleted = moduleCompleted.has(module._id);
+
+                                return (
+                                    <div
+                                        key={module._id}
+                                        className={`${styles.moduleItem} ${isActive ? styles.activeModule : ''}`}
+                                        onClick={() => {
+                                            setCurrentLessonIndex(lIdx);
+                                            setCurrentModuleIndex(mIdx);
+                                            setAssignmentMode(false);
+                                            if (isMobile) setIsSidebarOpen(false);
+                                        }}
+                                    >
+                                        <div className={styles.moduleIcon}>
+                                            {module.assignment ? '📝' : module.videoUrl ? '▶️' : '📄'}
+                                        </div>
+                                        <div className={styles.moduleInfo}>
+                                            <span className={styles.moduleTitleText}>{module.title}</span>
+                                            <span className={styles.moduleType}>
+                                                {module.assignment ? 'Assignment' : module.videoUrl ? 'Video' : 'Reading'}
+                                            </span>
+                                        </div>
+                                        {isCompleted && <span className={styles.checkMark}>✓</span>}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    ))}
+                </div>
+
+                <div className={styles.sidebarFooter}>
+                    <button onClick={() => router.push('/candidate/my-courses')} className={styles.backButtonSidebar}>
+                        ← Back to My Courses
+                    </button>
                 </div>
             </div>
 
-            <div className={styles.mainContent}>
-                {currentModule ? (
-                    <div className={styles.moduleCard}>
-                        {currentModule.videoUrl && (
-                            <div className={styles.videoContainer}>
-                                <iframe
-                                    src={currentModule.videoUrl.replace('watch?v=', 'embed/')}
-                                    className={styles.videoIframe}
-                                    allowFullScreen
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    title={currentModule.title}
-                                />
+            {/* Main Content */}
+            <div className={styles.mainContentArea}>
+                {/* Top Bar / Header of Content Area */}
+                <div className={styles.contentHeader}>
+                    <div className={styles.headerLeft}>
+                        <button onClick={toggleSidebar} className={styles.toggleButton} title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}>
+                            {isSidebarOpen ? <ChevronLeft size={24} /> : <Menu size={24} />}
+                        </button>
+                        <h1 className={styles.contentTitle}>
+                            {currentModule ? currentModule.title : 'Course Completed'}
+                        </h1>
+                    </div>
+                    {/* Add any other header controls here like prev/next if needed in header */}
+                </div>
+
+                <div className={styles.contentScrollable}>
+                    {assignmentMode && currentModule?.assignment ? (
+                        <div className={styles.assignmentContainer}>
+                            <div className={styles.assignmentHeader}>
+                                <h2 className={styles.assignmentTitle}>Assignment: {currentModule.title}</h2>
+                                <button onClick={handleExitAssignment} className={styles.exitButton}>
+                                    Exit Assignment
+                                </button>
                             </div>
-                        )}
 
-                        <div className={styles.moduleContent}>
-                            <h1 className={styles.moduleTitle}>{currentModule.title}</h1>
-
-                            {currentModule.description && (
-                                <div className={styles.moduleDescription}>
-                                    {currentModule.description}
-                                </div>
-                            )}
-
-                            {currentModule.assignment && currentModule.assignment.questions && currentModule.assignment.questions.length > 0 && !moduleCompleted.has(currentModule._id) && (
-                                <div className={styles.assignmentSection}>
-                                    <div className={styles.assignmentInfo}>
-                                        <div>
-                                            <h2 className={styles.assignmentHeading}>Assignment</h2>
-                                            <p className={styles.assignmentDetails}>
-                                                {currentModule.assignment.questions.length} question(s) • {currentModule.assignment.maxScore || 'N/A'} total marks
-                                            </p>
+                            <div className={styles.questionsContainer}>
+                                {currentModule.assignment.questions.map((q, idx) => (
+                                    <div key={q._id} className={styles.questionCard}>
+                                        <div className={styles.questionHeader}>
+                                            <h3 className={styles.questionNumber}>Question {idx + 1}</h3>
+                                            <span className={styles.questionMarks}>{q.maxMarks} marks</span>
                                         </div>
-                                        <button onClick={handleStartAssignment} className={styles.startAssignmentButton}>
-                                            Start Assignment
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {currentModule.assignment && moduleCompleted.has(currentModule._id) && (
-                                <div className={styles.completedSection}>
-                                    <div className={styles.completedMessage}>
-                                        <p>✓ Assignment completed! You can proceed to the next module.</p>
-                                    </div>
-                                </div>
-                            )}
+                                        <p className={styles.questionText}>{q.questionText}</p>
 
-                            {(!currentModule.assignment || currentModule.assignment.questions.length === 0) && (
-                                <div className={styles.navigationButtons}>
-                                    {currentLessonIndex === lessons.length - 1 && currentModuleIndex === currentLesson.modules.length - 1 ? (
-                                        <button onClick={moveToNext} className={styles.completeButton}>
-                                            Complete Course ✓
-                                        </button>
-                                    ) : (
-                                        <button onClick={moveToNext} className={styles.continueButton}>
-                                            Continue to Next Module →
-                                        </button>
-                                    )}
-                                </div>
-                            )}
+                                        {q.qType === 'mcq' && q.options && (
+                                            <div className={styles.optionsContainer}>
+                                                {q.options.map((opt, optIdx) => (
+                                                    <label key={optIdx} className={styles.optionLabel}>
+                                                        <input
+                                                            type="radio"
+                                                            name={`q_${q._id}`}
+                                                            className={styles.optionRadio}
+                                                            onChange={() => handleAnswerChange(q._id, optIdx)}
+                                                            checked={answers[q._id] === optIdx}
+                                                        />
+                                                        <span>{opt}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        )}
 
-                            {moduleCompleted.has(currentModule._id) && currentModule.assignment && (
-                                <div className={styles.navigationButtons}>
-                                    {currentLessonIndex === lessons.length - 1 && currentModuleIndex === currentLesson.modules.length - 1 ? (
-                                        <button onClick={moveToNext} className={styles.completeButton}>
-                                            Complete Course ✓
-                                        </button>
-                                    ) : (
-                                        <button onClick={moveToNext} className={styles.continueButton}>
-                                            Next Module →
-                                        </button>
-                                    )}
+                                        {(q.qType === 'short' || q.qType === 'code') && (
+                                            <textarea
+                                                className={styles.answerTextarea}
+                                                rows={6}
+                                                placeholder="Type your answer here..."
+                                                onChange={(e) => handleAnswerChange(q._id, e.target.value)}
+                                                value={answers[q._id] || ''}
+                                            />
+                                        )}
+                                    </div>
+                                ))}
+
+                                <div className={styles.submitContainer}>
+                                    <button onClick={handleSubmitAssignment} className={styles.submitButton}>
+                                        Submit Assignment
+                                    </button>
                                 </div>
-                            )}
+                            </div>
                         </div>
-                    </div>
-                ) : (
-                    <div className={styles.noContent}>
-                        <p>Course completed!</p>
-                    </div>
-                )}
+                    ) : currentModule ? (
+                        <div className={styles.moduleCard}>
+                            {currentModule.videoUrl && (
+                                <div className={styles.videoWrapper}>
+                                    <iframe
+                                        src={currentModule.videoUrl.replace('watch?v=', 'embed/')}
+                                        className={styles.videoIframe}
+                                        allowFullScreen
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        title={currentModule.title}
+                                    />
+                                </div>
+                            )}
+
+                            <div className={styles.moduleContent}>
+                                {currentModule.description && (
+                                    <div className={styles.moduleDescription}>
+                                        {currentModule.description}
+                                    </div>
+                                )}
+
+                                {currentModule.assignment && currentModule.assignment.questions && currentModule.assignment.questions.length > 0 && !moduleCompleted.has(currentModule._id) && (
+                                    <div className={styles.assignmentSection}>
+                                        <div className={styles.assignmentInfo}>
+                                            <div>
+                                                <h2 className={styles.assignmentHeading}>Assignment</h2>
+                                                <p className={styles.assignmentDetails}>
+                                                    {currentModule.assignment.questions.length} question(s) • {currentModule.assignment.maxScore || 'N/A'} total marks
+                                                </p>
+                                            </div>
+                                            <button onClick={handleStartAssignment} className={styles.startAssignmentButton}>
+                                                Start Assignment
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {currentModule.assignment && moduleCompleted.has(currentModule._id) && (
+                                    <div className={styles.completedSection}>
+                                        <div className={styles.completedMessage}>
+                                            <p>✓ Assignment completed! You can proceed to the next module.</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className={styles.navigationButtons}>
+                                    <button
+                                        onClick={() => {
+                                            if (currentModuleIndex > 0) {
+                                                setCurrentModuleIndex(currentModuleIndex - 1);
+                                            } else if (currentLessonIndex > 0) {
+                                                setCurrentLessonIndex(currentLessonIndex - 1);
+                                                setCurrentModuleIndex(lessons[currentLessonIndex - 1].modules.length - 1);
+                                            }
+                                        }}
+                                        className={styles.navButton}
+                                        disabled={currentLessonIndex === 0 && currentModuleIndex === 0}
+                                    >
+                                        Previous
+                                    </button>
+
+                                    {(!currentModule.assignment || currentModule.assignment.questions.length === 0 || moduleCompleted.has(currentModule._id)) && (
+                                        <>
+                                            {currentLessonIndex === lessons.length - 1 && currentModuleIndex === currentLesson.modules.length - 1 ? (
+                                                <button onClick={moveToNext} className={styles.completeButton}>
+                                                    Complete Course ✓
+                                                </button>
+                                            ) : (
+                                                <button onClick={moveToNext} className={styles.continueButton}>
+                                                    Next Module →
+                                                </button>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className={styles.noContent}>
+                            <h2>🎉 Course Completed!</h2>
+                            <p>You have successfully finished all modules.</p>
+                            <button onClick={() => router.push('/candidate/my-courses')} className={styles.finishButton}>
+                                Return to Dashboard
+                            </button>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
