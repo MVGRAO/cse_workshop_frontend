@@ -280,7 +280,7 @@ export function hasRoleToken(role: string): boolean {
 export async function getCurrentUser(role?: string): Promise<any> {
   // Try role-specific token first if provided
   let token = role ? getAuthToken(role) : getAuthToken();
-  
+
   if (!token) {
     throw new Error('No authentication token found');
   }
@@ -296,7 +296,12 @@ export async function getCurrentUser(role?: string): Promise<any> {
   const data = await response.json();
 
   if (!response.ok) {
-    throw new Error(data.message || 'Failed to fetch user profile');
+    if (response.status === 401 || response.status === 403) {
+      // Token likely invalid or user blocked/not found
+      return { success: false, message: data.message || 'Authentication failed' };
+    }
+    // Return error structure instead of throwing, so caller can handle it
+    return { success: false, message: data.message || 'Failed to fetch user profile' };
   }
 
   return data;
@@ -824,11 +829,11 @@ export async function startSubmission(assignmentId: string): Promise<any> {
  */
 export async function submitAssignment(assignmentId: string, submissionData: {
   submissionId: string;
-    answers: Array<{
-      questionId: string;
-      selectedOptionIndex?: number;
-      answerText?: string;
-    }>;
+  answers: Array<{
+    questionId: string;
+    selectedOptionIndex?: number;
+    answerText?: string;
+  }>;
   tabSwitchCount?: number;
 }): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/student/assignments/${assignmentId}/submit`, {
@@ -1061,6 +1066,22 @@ export async function rejectVerifierRequest(id: string): Promise<any> {
     throw new Error(data.message || 'Failed to reject request');
   }
 
+  return data;
+}
+
+/**
+ * Update user status (block/unblock) - Admin only
+ */
+export async function updateUserStatus(userId: string, isBlocked: boolean): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/admin/users/${userId}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ isBlocked }),
+  }, 'admin');
+
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to update user status');
+  }
   return data;
 }
 

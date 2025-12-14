@@ -70,14 +70,20 @@ export default function Courses() {
         const enrollmentMap = new Map();
         enrollmentsData.forEach((e: any) => {
           // Handle both populated and unpopulated course fields
-          const courseId = (e.course?._id || e.course).toString();
-          enrollmentMap.set(courseId, e);
+          const rawCourse = e.course;
+          const courseId = rawCourse ? (rawCourse._id ?? rawCourse).toString() : null;
+          if (courseId) {
+            enrollmentMap.set(courseId, e);
+          }
         });
 
         const certificateMap = new Map();
         certificatesData.forEach((c: any) => {
-          const courseId = (c.course?._id || c.course).toString();
-          certificateMap.set(courseId, c);
+          const rawCourse = c.course;
+          const courseId = rawCourse ? (rawCourse._id ?? rawCourse).toString() : null;
+          if (courseId) {
+            certificateMap.set(courseId, c);
+          }
         });
 
         if (coursesData.success) {
@@ -185,21 +191,22 @@ export default function Courses() {
                     <div className={styles.cardActions}>
                       {course.enrolled ? (
                         <div className={styles.enrolledSection}>
-                          <Link
-                            href={`/candidate/courses/${course._id}`}
-                            className={styles.viewCourseButton}
+                          <button
+                            disabled
+                            className={styles.alreadyEnrolledButton}
+                            style={{
+                              backgroundColor: '#10b981',
+                              opacity: 0.7,
+                              cursor: 'not-allowed',
+                              color: 'white',
+                              padding: '0.5rem 1rem',
+                              borderRadius: '0.375rem',
+                              border: 'none',
+                              fontWeight: 500
+                            }}
                           >
-                            View Course
-                          </Link>
-
-                          {course.enrollment?.status === 'completed' && (
-                            <Link
-                              href={`/candidate/my-courses/results/${course.enrollment._id}`}
-                              className={styles.reviewResultsButton}
-                            >
-                              Review Results
-                            </Link>
-                          )}
+                            Already Enrolled
+                          </button>
                         </div>
                       ) : (
                         <div className={styles.enrollActions}>

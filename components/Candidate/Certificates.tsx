@@ -15,6 +15,7 @@ interface Certificate {
     _id: string;
     title: string;
     code: string;
+    resultsGenerated?: boolean;
   };
   certificateNumber: string;
   theoryScore: number;
@@ -51,7 +52,11 @@ export default function Certificates() {
       const data = await response.json();
 
       if (response.ok && data.success) {
-        setCertificates(data.data || []);
+        // Filter certificates to only show those where course results have been generated
+        const visibleCertificates = (data.data || []).filter((cert: Certificate) =>
+          cert.course && cert.course.resultsGenerated
+        );
+        setCertificates(visibleCertificates);
       }
     } catch (error) {
       console.error('Failed to fetch certificates:', error);
@@ -77,8 +82,8 @@ export default function Certificates() {
         <div className={styles.contentWrapper}>
           <h1 className={styles.title}>Certificates</h1>
           <p className={styles.subtitle}>
-            {certificates.length === 0 
-              ? 'No certificates yet' 
+            {certificates.length === 0
+              ? 'No certificates yet'
               : `You have ${certificates.length} certificate${certificates.length > 1 ? 's' : ''}`}
           </p>
 

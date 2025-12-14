@@ -11,7 +11,8 @@ import {
   updateModule,
   createModule,
   createAssignment,
-  updateAssignment
+  updateAssignment,
+  getUsers
 } from '@/lib/api';
 import { useToast } from '@/components/common/ToastProvider';
 import styles from '@/styles/courseedit.module.scss';
@@ -63,6 +64,8 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
   const [courseName, setCourseName] = useState('');
   const [courseCode, setCourseCode] = useState('');
   const [numLessons, setNumLessons] = useState(1);
+  const [allVerifiers, setAllVerifiers] = useState<any[]>([]);
+  const [selectedVerifiers, setSelectedVerifiers] = useState<string[]>([]);
 
   // Lesson and module data
   const [lessons, setLessons] = useState<LessonData[]>([]);
@@ -79,13 +82,21 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
   const fetchCourseData = async () => {
     try {
       setLoading(true);
-      const response = await getCourseDetails(courseId);
+      const [courseRes, verifiersRes] = await Promise.all([
+        getCourseDetails(courseId),
+        getUsers('verifier')
+      ]);
 
-      if (response.success && response.data) {
-        const { course, lessons: fetchedLessons } = response.data;
+      if (courseRes.success && courseRes.data) {
+        const { course, lessons: fetchedLessons } = courseRes.data;
         setCourseData(course);
         setCourseName(course.title);
         setCourseCode(course.code);
+
+        // set selected verifiers
+        if (course.verifiers) {
+          setSelectedVerifiers(course.verifiers.map((v: any) => v._id || v));
+        }
 
         // Map fetched lessons to state structure
         const mappedLessons = fetchedLessons.map((l: any) => ({
@@ -127,6 +138,10 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
           setLessons(mappedLessons);
         }
       }
+
+      if (verifiersRes.success && verifiersRes.data) {
+        setAllVerifiers(verifiersRes.data);
+      }
     } catch (error: any) {
       console.error('Error fetching course:', error);
       toast({
@@ -150,6 +165,7 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
       await updateCourse(courseId, {
         title: courseName,
         code: courseCode.toUpperCase(),
+        verifiers: selectedVerifiers
       });
 
       if (lessons.length < numLessons) {
@@ -421,31 +437,77 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
                 <div className={styles.formSection}>
                   <div className={styles.formGroup}>
                     <label>Course Name</label>
-                    <input 
-                      type="text" 
-                      value={courseName} 
-                      onChange={e => setCourseName(e.target.value)} 
-                      disabled={isSubmitting} 
+                    <input
+                      type="text"
+                      value={courseName}
+                      onChange={e => setCourseName(e.target.value)}
+                      disabled={isSubmitting}
                     />
                   </div>
                   <div className={styles.formGroup}>
                     <label>Course Code</label>
-                    <input 
-                      type="text" 
-                      value={courseCode} 
-                      onChange={e => setCourseCode(e.target.value.toUpperCase())} 
-                      disabled={isSubmitting} 
+                    <input
+                      type="text"
+                      value={courseCode}
+                      onChange={e => setCourseCode(e.target.value.toUpperCase())}
+                      disabled={isSubmitting}
                     />
                   </div>
                   <div className={styles.formGroup}>
                     <label>Number of Lessons</label>
-                    <input 
-                      type="number" 
-                      value={numLessons} 
-                      onChange={e => setNumLessons(parseInt(e.target.value))} 
-                      min="1" 
-                      disabled={isSubmitting} 
+                    <input
+                      type="number"
+                      value={numLessons}
+                      onChange={e => setNumLessons(parseInt(e.target.value))}
+                      min="1"
+                      disabled={isSubmitting}
                     />
+                  </div>
+
+                  <div className={styles.formGroup}>
+                    <label>Assign Verifiers</label>
+                    <div className={styles.verifiersGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      {allVerifiers.map(verifier => {
+                        // Check if this verifier was ORIGINALLY assigned to the course
+                        // The requirement says: "disabling the already assigned verifiers (it means it should be always selected)"
+                        // We check against courseData.verifiers (original state)
+                        const isOriginallyAssigned = courseData?.verifiers?.some((v: any) => (v._id || v) === verifier._id);
+                        const isSelected = selectedVerifiers.includes(verifier._id);
+
+                        return (
+                          <label
+                            key={verifier._id}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              padding: '0.5rem',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '0.375rem',
+                              backgroundColor: isOriginallyAssigned ? '#f3f4f6' : 'white',
+                              cursor: isOriginallyAssigned ? 'not-allowed' : 'pointer',
+                              opacity: isOriginallyAssigned ? 0.7 : 1
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              disabled={isOriginallyAssigned}
+                              onChange={(e) => {
+                                if (isOriginallyAssigned) return;
+                                if (e.target.checked) {
+                                  setSelectedVerifiers([...selectedVerifiers, verifier._id]);
+                                } else {
+                                  setSelectedVerifiers(selectedVerifiers.filter(id => id !== verifier._id));
+                                }
+                              }}
+                              style={{ marginRight: '0.5rem' }}
+                            />
+                            <span>{verifier.name}</span>
+                          </label>
+                        );
+                      })}
+                      {allVerifiers.length === 0 && <p style={{ color: '#6b7280', fontSize: '0.875rem' }}>No verifiers found.</p>}
+                    </div>
                   </div>
                 </div>
                 <div className={styles.formActions}>
@@ -463,25 +525,25 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
                 <div className={styles.formSection}>
                   <div className={styles.formGroup}>
                     <label>Title</label>
-                    <input 
-                      type="text" 
-                      value={currentLesson.title} 
-                      onChange={e => handleLessonSetup('title', e.target.value)} 
+                    <input
+                      type="text"
+                      value={currentLesson.title}
+                      onChange={e => handleLessonSetup('title', e.target.value)}
                     />
                   </div>
                   <div className={styles.formGroup}>
                     <label>Modules</label>
-                    <input 
-                      type="number" 
-                      value={currentLesson.numModules} 
-                      onChange={e => handleLessonSetup('numModules', e.target.value)} 
-                      min="1" 
+                    <input
+                      type="number"
+                      value={currentLesson.numModules}
+                      onChange={e => handleLessonSetup('numModules', e.target.value)}
+                      min="1"
                     />
                   </div>
                 </div>
                 <div className={styles.formActions}>
-                  <button 
-                    onClick={() => currentLessonIndex > 0 ? setCurrentLessonIndex(currentLessonIndex - 1) : setCurrentStep('course')} 
+                  <button
+                    onClick={() => currentLessonIndex > 0 ? setCurrentLessonIndex(currentLessonIndex - 1) : setCurrentStep('course')}
                     className={styles.cancelButton}
                   >
                     Back
@@ -497,27 +559,27 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
                 <div className={styles.formSection}>
                   <div className={styles.formGroup}>
                     <label>Title</label>
-                    <input 
-                      type="text" 
-                      value={currentModule.title} 
-                      onChange={e => handleModuleChange('title', e.target.value)} 
+                    <input
+                      type="text"
+                      value={currentModule.title}
+                      onChange={e => handleModuleChange('title', e.target.value)}
                     />
                   </div>
                   <div className={styles.formGroup}>
                     <label>Description (Markdown)</label>
-                    <textarea 
-                      value={currentModule.description} 
-                      onChange={e => handleModuleChange('description', e.target.value)} 
-                      rows={5} 
-                      className={styles.textarea} 
+                    <textarea
+                      value={currentModule.description}
+                      onChange={e => handleModuleChange('description', e.target.value)}
+                      rows={5}
+                      className={styles.textarea}
                     />
                   </div>
                   <div className={styles.formGroup}>
                     <label>Video URL</label>
-                    <input 
-                      type="text" 
-                      value={currentModule.videoUrl} 
-                      onChange={e => handleModuleChange('videoUrl', e.target.value)} 
+                    <input
+                      type="text"
+                      value={currentModule.videoUrl}
+                      onChange={e => handleModuleChange('videoUrl', e.target.value)}
                     />
                   </div>
                 </div>
@@ -530,36 +592,36 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
                         <h4>Question {idx + 1}</h4>
                         <button onClick={() => removeQuestion(idx)} className={styles.removeButton}>Remove</button>
                       </div>
-                      <select 
-                        value={q.qType} 
-                        onChange={e => handleQuestionChange(idx, 'qType', e.target.value)} 
+                      <select
+                        value={q.qType}
+                        onChange={e => handleQuestionChange(idx, 'qType', e.target.value)}
                         className={styles.selectInput}
                       >
                         <option value="mcq">MCQ</option>
                         <option value="short">Short Answer</option>
                         <option value="code">Code</option>
                       </select>
-                      <textarea 
-                        value={q.questionText} 
-                        onChange={e => handleQuestionChange(idx, 'questionText', e.target.value)} 
-                        placeholder="Question" 
-                        className={styles.textarea} 
+                      <textarea
+                        value={q.questionText}
+                        onChange={e => handleQuestionChange(idx, 'questionText', e.target.value)}
+                        placeholder="Question"
+                        className={styles.textarea}
                       />
 
                       {q.qType === 'mcq' && (
                         <div className={styles.optionsContainer}>
                           {q.options?.map((opt, optIdx) => (
                             <div key={optIdx} className={styles.optionRow}>
-                              <input 
-                                type="radio" 
-                                checked={q.correctOptionIndex === optIdx} 
-                                onChange={() => handleQuestionChange(idx, 'correctOptionIndex', optIdx)} 
+                              <input
+                                type="radio"
+                                checked={q.correctOptionIndex === optIdx}
+                                onChange={() => handleQuestionChange(idx, 'correctOptionIndex', optIdx)}
                               />
-                              <input 
-                                type="text" 
-                                value={opt} 
-                                onChange={e => handleQuestionChange(idx, `option_${optIdx}`, e.target.value)} 
-                                placeholder={`Option ${optIdx + 1}`} 
+                              <input
+                                type="text"
+                                value={opt}
+                                onChange={e => handleQuestionChange(idx, `option_${optIdx}`, e.target.value)}
+                                placeholder={`Option ${optIdx + 1}`}
                               />
                             </div>
                           ))}
@@ -569,20 +631,20 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
                         <label>
                           {q.qType === 'mcq' ? 'Answer Explanation:' : 'Correct Answer Text:'}
                         </label>
-                        <textarea 
-                          value={q.answerText} 
-                          onChange={e => handleQuestionChange(idx, 'answerText', e.target.value)} 
-                          placeholder={q.qType === 'mcq' ? "Explanation" : "Correct answer..."} 
-                          className={styles.textarea} 
-                          rows={2} 
+                        <textarea
+                          value={q.answerText}
+                          onChange={e => handleQuestionChange(idx, 'answerText', e.target.value)}
+                          placeholder={q.qType === 'mcq' ? "Explanation" : "Correct answer..."}
+                          className={styles.textarea}
+                          rows={2}
                         />
                       </div>
                       <div className={styles.marksSection}>
                         <label>Marks: </label>
-                        <input 
-                          type="number" 
-                          value={q.maxMarks} 
-                          onChange={e => handleQuestionChange(idx, 'maxMarks', e.target.value)} 
+                        <input
+                          type="number"
+                          value={q.maxMarks}
+                          onChange={e => handleQuestionChange(idx, 'maxMarks', e.target.value)}
                         />
                       </div>
                     </div>
@@ -591,8 +653,8 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
                 </div>
 
                 <div className={styles.formActions}>
-                  <button 
-                    onClick={() => currentModuleIndex > 0 ? setCurrentModuleIndex(currentModuleIndex - 1) : setCurrentStep('lesson-setup')} 
+                  <button
+                    onClick={() => currentModuleIndex > 0 ? setCurrentModuleIndex(currentModuleIndex - 1) : setCurrentStep('lesson-setup')}
                     className={styles.cancelButton}
                   >
                     Back
@@ -606,6 +668,6 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
           </div>
         </div>
       </div>
-    </PrivateRoute>
+    </PrivateRoute >
   );
 }

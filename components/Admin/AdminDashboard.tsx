@@ -233,7 +233,7 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
       const response = await generateCourseResults(courseId);
       toast({
         title: 'Success',
-        description: `Generated ${response.data.generated} certificates. ${response.data.alreadyExists} already existed.`,
+        description: `Results generated for the students.`,
         variant: 'success',
       });
       fetchCourses();
@@ -253,10 +253,27 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
   return (
     <div className={styles.dashboard}>
       <header className={styles.header}>
-        <h1 className={styles.dashboardTitle}>Admin Dashboard</h1>
-        <button onClick={onLogout} className={styles.logoutButton}>
-          Logout
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <h1 className={styles.dashboardTitle}>Admin Dashboard</h1>
+          <nav style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
+            <Link href="/admin" style={{ color: '#374151', textDecoration: 'none', fontWeight: 500 }}>
+              Courses
+            </Link>
+            <Link href="/admin/requests" style={{ color: '#374151', textDecoration: 'none', fontWeight: 500 }}>
+              View Requests
+            </Link>
+            <Link href="/admin/students" style={{ color: '#374151', textDecoration: 'none', fontWeight: 500 }}>
+              Students
+            </Link>
+            <button
+              onClick={onLogout}
+              className={styles.logoutButton}
+              style={{ marginLeft: '1rem' }}
+            >
+              Logout
+            </button>
+          </nav>
+        </div>
       </header>
 
       <div className={styles.content}>
@@ -287,120 +304,154 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
           </div>
         ) : (
           <div className={styles.coursesList}>
-            <h2 className={styles.sectionTitle}>All Courses ({courses.length})</h2>
-            <div className={styles.coursesGrid}>
-              {courses.map((course) => (
-                <div key={course._id} className={styles.courseCard}>
-                  <div className={styles.courseCardContent}>
-                    <h3 className={styles.courseTitle}>{course.title}</h3>
-                    <p className={styles.courseCode}>Code: {course.code}</p>
-                    <p className={styles.courseStatus}>Status: {course.status}</p>
-                    {course.description && (
-                      <p className={styles.courseDescription}>{course.description}</p>
-                    )}
-                  </div>
+            {/* Active Courses Section */}
+            <div className={styles.activeCoursesSection} style={{ marginBottom: '3rem' }}>
+              <h2 className={styles.sectionTitle}>Courses ({courses.filter(c => !c.resultsGenerated).length})</h2>
+              <div className={styles.coursesGrid}>
+                {courses.filter(c => !c.resultsGenerated).map((course) => (
+                  <div key={course._id} className={styles.courseCard}>
+                    <div className={styles.courseCardContent}>
+                      <h3 className={styles.courseTitle}>{course.title}</h3>
+                      <p className={styles.courseCode}>Code: {course.code}</p>
+                      <p className={styles.courseStatus}>Status: {course.status}</p>
+                      {course.description && (
+                        <p className={styles.courseDescription}>{course.description}</p>
+                      )}
+                    </div>
 
-                  <div className={styles.courseCardActions}>
-                    <button
-                      onClick={() => router.push(`/admin/courses/${course._id}/edit`)}
-                      className={styles.updateButton}
-                      disabled={course.status === 'published'}
-                      title={course.status === 'published' ? 'Cannot update published course' : ''}
-                    >
-                      Update
-                    </button>
-                    <button
-                      onClick={() => setShowDeleteConfirm(course._id)}
-                      className={styles.deleteButton}
-                      disabled={course.status === 'published'}
-                      title={course.status === 'published' ? 'Cannot delete published course' : ''}
-                    >
-                      Delete
-                    </button>
-                  </div>
-
-                  {course.status !== 'published' &&
-                    (course.lessonCount > 0 || course.moduleCount > 0) && (
+                    <div className={styles.courseCardActions}>
                       <button
-                        onClick={() => setShowPublishConfirm(course._id)}
-                        className={styles.publishButton}
+                        onClick={() => router.push(`/admin/courses/${course._id}/edit`)}
+                        className={styles.updateButton}
+                        disabled={course.status === 'published'}
+                        title={course.status === 'published' ? 'Cannot update published course' : ''}
                       >
-                        Publish Course
+                        Update
                       </button>
+                      <button
+                        onClick={() => setShowDeleteConfirm(course._id)}
+                        className={styles.deleteButton}
+                        disabled={course.status === 'published'}
+                        title={course.status === 'published' ? 'Cannot delete published course' : ''}
+                      >
+                        Delete
+                      </button>
+                    </div>
+
+                    {course.status !== 'published' &&
+                      (course.lessonCount > 0 || course.moduleCount > 0) && (
+                        <button
+                          onClick={() => setShowPublishConfirm(course._id)}
+                          className={styles.publishButton}
+                        >
+                          Publish Course
+                        </button>
+                      )}
+
+                    {course.status === 'published' && (
+                      <div style={{ width: '100%', marginTop: '0.5rem' }}>
+                        <button
+                          onClick={() => handleGenerateResults(course._id)}
+                          className={styles.generateButton}
+                        >
+                          Generate Results
+                        </button>
+                      </div>
                     )}
 
-                  {course.status === 'published' && (
-                    <div style={{ width: '100%', marginTop: '0.5rem' }}>
+                    {showDeleteConfirm === course._id && (
+                      <div className={styles.confirmDialog}>
+                        <p>Delete this course? This action cannot be undone.</p>
+                        <div className={styles.confirmActions}>
+                          <button
+                            onClick={() => handleConfirmDelete(course._id)}
+                            className={styles.confirmButton}
+                          >
+                            Yes, Delete
+                          </button>
+                          <button
+                            onClick={() => setShowDeleteConfirm(null)}
+                            className={styles.cancelButton}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {showPublishConfirm === course._id && (
+                      <div className={styles.confirmDialog}>
+                        <p>Publish this course?</p>
+                        <div className={styles.confirmActions}>
+                          <button
+                            onClick={() => handlePublishCourse(course._id)}
+                            className={styles.confirmButton}
+                            style={{ backgroundColor: '#10b981' }}
+                          >
+                            Yes, Publish
+                          </button>
+                          <button
+                            onClick={() => setShowPublishConfirm(null)}
+                            className={styles.cancelButton}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Completed Courses Section */}
+            <div className={styles.completedCoursesSection}>
+              <h2 className={styles.sectionTitle}>Completed Courses ({courses.filter(c => c.resultsGenerated).length})</h2>
+              <div className={styles.coursesGrid}>
+                {courses.filter(c => c.resultsGenerated).map((course) => (
+                  <div key={course._id} className={styles.courseCard} style={{ opacity: 0.9, backgroundColor: '#f9fafb' }}>
+                    <div className={styles.courseCardContent}>
+                      <h3 className={styles.courseTitle}>{course.title}</h3>
+                      <p className={styles.courseCode}>Code: {course.code}</p>
+                      <p className={styles.courseStatus} style={{ color: '#059669' }}>Status: Completed</p>
+                      {course.description && (
+                        <p className={styles.courseDescription}>{course.description}</p>
+                      )}
+                    </div>
+
+                    <div style={{ width: '100%', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                       <button
-                        onClick={() => handleGenerateResults(course._id)}
+                        disabled
                         className={styles.generateButton}
+                        style={{ backgroundColor: '#10b981', opacity: 0.8, cursor: 'not-allowed' }}
                       >
-                        Generate Results
+                        Results Generated
                       </button>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.5rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
                         <Link
                           href={`/admin/courses/${course._id}/results`}
                           className={styles.linkButton}
+                          style={{ textAlign: 'center' }}
                         >
                           Review Results
                         </Link>
-                        <Link
-                          href={`/admin/courses/${course._id}/verifiers`}
-                          className={styles.linkButton}
-                        >
-                          Verifiers
-                        </Link>
-                      </div>
-                    </div>
-                  )}
-
-                  {showDeleteConfirm === course._id && (
-                    <div className={styles.confirmDialog}>
-                      <p>Delete this course? This action cannot be undone.</p>
-                      <div className={styles.confirmActions}>
                         <button
-                          onClick={() => handleConfirmDelete(course._id)}
-                          className={styles.confirmButton}
+                          disabled
+                          className={styles.deleteButton} // Using existing style for now
+                          style={{ width: '100%', opacity: 0.6, cursor: 'not-allowed', backgroundColor: '#dc2626' }}
                         >
-                          Yes, Delete
-                        </button>
-                        <button
-                          onClick={() => setShowDeleteConfirm(null)}
-                          className={styles.cancelButton}
-                        >
-                          Cancel
+                          Stop Course
                         </button>
                       </div>
                     </div>
-                  )}
-
-                  {showPublishConfirm === course._id && (
-                    <div className={styles.confirmDialog}>
-                      <p>Publish this course?</p>
-                      <div className={styles.confirmActions}>
-                        <button
-                          onClick={() => handlePublishCourse(course._id)}
-                          className={styles.confirmButton}
-                          style={{ backgroundColor: '#10b981' }}
-                        >
-                          Yes, Publish
-                        </button>
-                        <button
-                          onClick={() => setShowPublishConfirm(null)}
-                          className={styles.cancelButton}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </div >
   );
 }

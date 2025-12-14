@@ -5,7 +5,37 @@ import { useRouter } from 'next/navigation';
 import { getStudentCourseDetails, startSubmission, submitAssignment, getStudentEnrollments, completeEnrollment, getCurrentUser } from '@/lib/api';
 import { useToast } from '@/components/common/ToastProvider';
 import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import YouTube from 'react-youtube';
 import styles from '@/styles/courseplayer.module.scss';
+
+const getVideoId = (url: string) => {
+    try {
+        if (!url) return '';
+        let videoId = '';
+        if (url.includes('youtube.com/watch?v=')) {
+            videoId = url.split('v=')[1];
+        } else if (url.includes('youtu.be/')) {
+            videoId = url.split('youtu.be/')[1];
+        } else if (url.includes('youtube.com/embed/')) {
+            videoId = url.split('embed/')[1];
+        } else if (url.includes('youtube.com/shorts/')) {
+            videoId = url.split('shorts/')[1];
+        } else {
+            return url; // fallback to assuming it might be an ID
+        }
+
+        // Clean up parameters (e.g. &t=10s)
+        if (videoId.includes('&')) {
+            videoId = videoId.split('&')[0];
+        }
+        if (videoId.includes('?')) {
+            videoId = videoId.split('?')[0];
+        }
+        return videoId;
+    } catch (e) {
+        return '';
+    }
+};
 
 interface Question {
     _id: string;
@@ -457,11 +487,7 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                     ))}
                 </div>
 
-                <div className={styles.sidebarFooter}>
-                    <button onClick={() => router.push('/candidate/my-courses')} className={styles.backButtonSidebar}>
-                        ← Back to My Courses
-                    </button>
-                </div>
+                {/* Sidebar footer removed as per request */}
             </div>
 
             {/* Main Content */}
@@ -538,12 +564,25 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                         <div className={styles.moduleCard}>
                             {currentModule.videoUrl && (
                                 <div className={styles.videoWrapper}>
-                                    <iframe
-                                        src={currentModule.videoUrl.replace('watch?v=', 'embed/')}
+                                    <YouTube
+                                        videoId={getVideoId(currentModule.videoUrl)}
+                                        opts={{
+                                            width: '100%',
+                                            height: '100%',
+                                            playerVars: {
+                                                autoplay: 0,
+                                                origin: typeof window !== 'undefined' ? window.location.origin : undefined,
+                                            },
+                                        }}
                                         className={styles.videoIframe}
-                                        allowFullScreen
-                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                        title={currentModule.title}
+                                        iframeClassName={styles.videoIframe}
+                                        onError={() => {
+                                            toast({
+                                                title: 'Video Error',
+                                                description: 'Unable to load video',
+                                                variant: 'error'
+                                            });
+                                        }}
                                     />
                                 </div>
                             )}

@@ -9,3 +9,4 @@ export default async function CourseResultsPage({ params }: PageProps) {
   return <CourseResults courseId={courseId} />;
 }
 
+
