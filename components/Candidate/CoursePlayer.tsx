@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getStudentCourseDetails, startSubmission, submitAssignment, getStudentEnrollments, completeEnrollment, getCurrentUser } from '@/lib/api';
+import { getStudentCourseDetails, startSubmission, submitAssignment, getStudentEnrollments, completeEnrollment, getCurrentUser, getAssignmentReview } from '@/lib/api';
 import { useToast } from '@/components/common/ToastProvider';
-import { Menu, X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Menu, X, ChevronLeft, ChevronRight, PlayCircle, FileText, BookOpen } from 'lucide-react';
 import YouTube from 'react-youtube';
 import styles from '@/styles/courseplayer.module.scss';
 
@@ -89,6 +89,34 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
     const [user, setUser] = useState<any>(null);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [isMobile, setIsMobile] = useState(false);
+    const [isCourseCompleted, setIsCourseCompleted] = useState(false);
+    const [isReviewMode, setIsReviewMode] = useState(false);
+    const [reviewData, setReviewData] = useState<any>(null);
+
+
+    useEffect(() => {
+  const loadReviewData = async () => {
+    const module = getCurrentModule();
+
+    if (
+      isReviewMode &&
+      module?.assignment?._id
+    ) {
+      try {
+        const res = await getAssignmentReview(module.assignment._id);
+        if (res.success) {
+          setReviewData(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load review data', err);
+      }
+    } else {
+      setReviewData(null);
+    }
+  };
+
+  loadReviewData();
+}, [currentLessonIndex, currentModuleIndex, isReviewMode]);
 
     useEffect(() => {
         const checkMobile = () => {
@@ -121,20 +149,31 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
             console.error('Failed to fetch user:', error);
         }
     };
+const fetchEnrollmentId = async () => {
+    try {
+        const enrollments = await getStudentEnrollments();
+        if (enrollments.success && enrollments.data) {
+            const enrollment = enrollments.data.find(
+                (e: any) => e.course?._id === courseId
+            );
 
-    const fetchEnrollmentId = async () => {
-        try {
-            const enrollments = await getStudentEnrollments();
-            if (enrollments.success && enrollments.data) {
-                const enrollment = enrollments.data.find((e: any) => e.course._id === courseId);
-                if (enrollment) {
-                    setEnrollmentId(enrollment._id);
-                }
+            if (enrollment) {
+                setEnrollmentId(enrollment._id);
+
+                if (enrollment.status === 'completed') {
+    setIsCourseCompleted(true);
+    setIsReviewMode(true);
+    setShowConfirmDialog(false);
+    setCourseStarted(true);
+}
+
             }
-        } catch (error) {
-            console.error('Error fetching enrollment:', error);
         }
-    };
+    } catch (error) {
+        console.error('Error fetching enrollment:', error);
+    }
+};
+
 
     const fetchCourseContent = async () => {
         try {
@@ -188,6 +227,10 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
     };
 
     const handleStartAssignment = async () => {
+    if (isReviewMode) return; // 🔒 block restart
+
+
+
         const module = getCurrentModule();
         if (!module?.assignment?._id) return;
 
@@ -307,7 +350,7 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
         );
     }
 
-    if (showConfirmDialog) {
+if (showConfirmDialog && !isCourseCompleted) {
         return (
             <div className={styles.confirmDialog}>
                 <div className={styles.confirmCard}>
@@ -603,12 +646,61 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                                                     {currentModule.assignment.questions.length} question(s) • {currentModule.assignment.maxScore || 'N/A'} total marks
                                                 </p>
                                             </div>
-                                            <button onClick={handleStartAssignment} className={styles.startAssignmentButton}>
-                                                Start Assignment
-                                            </button>
+  {/* LEARNING MODE ONLY */}
+{!isReviewMode &&
+ currentModule.assignment &&
+ !moduleCompleted.has(currentModule._id) && (
+    <button
+        onClick={handleStartAssignment}
+        className={styles.startAssignmentButton}
+    >
+        Start Assignment
+    </button>
+)}
+{isReviewMode && (
+    <span className={styles.reviewBadge}>
+        Review Mode
+    </span>
+)}
+
+
+
+
                                         </div>
                                     </div>
                                 )}
+                                {/* REVIEW MODE */}
+{isReviewMode && currentModule.assignment && reviewData && (
+    <div className={styles.reviewSection}>
+        <h2>Assignment Review</h2>
+
+        {reviewData.answers.map((ans: any, idx: number) => (
+            <div key={ans.questionId} className={styles.reviewCard}>
+                <h3>Question {idx + 1}</h3>
+
+                <p><strong>Your Answer:</strong></p>
+                <div className={styles.studentAnswer}>
+                    {ans.studentAnswer ?? 'Not answered'}
+                </div>
+
+                <p><strong>Correct Answer:</strong></p>
+                <div className={styles.correctAnswer}>
+                    {ans.correctAnswer}
+                </div>
+
+                <p className={styles.marks}>
+                    Marks: {ans.marksAwarded} / {ans.maxMarks}
+                </p>
+            </div>
+        ))}
+
+        <div className={styles.scoreSummary}>
+            <strong>Total Score:</strong> {reviewData.totalScore} <br />
+            <strong>Grade:</strong> {reviewData.grade}
+        </div>
+    </div>
+)}
+
 
                                 {currentModule.assignment && moduleCompleted.has(currentModule._id) && (
                                     <div className={styles.completedSection}>

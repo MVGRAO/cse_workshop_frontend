@@ -435,13 +435,9 @@
     box-shadow: none;
   }
 
-  .moduleContent {
-    padding: 1rem;
-  }
+  
 
-  .contentScrollable {
-    padding: 1rem 0;
-  }
+ 
 
   .navigationButtons {
     flex-direction: column;
@@ -516,6 +512,25 @@
 
   .moduleIcon {
     opacity: 1;
+  }
+}
+
+.assignmentModule {
+  background-color: #fefce8;
+  border-left-color: #f59e0b;
+
+  .moduleTitleText {
+    color: #92400e;
+    font-weight: 500;
+  }
+
+  .moduleIcon {
+    opacity: 1;
+    color: #f59e0b;
+  }
+
+  &:hover {
+    background-color: #fef3c7;
   }
 }
 
@@ -597,8 +612,7 @@
 .contentScrollable {
   flex: 1;
   overflow-y: auto;
-  padding: 2rem;
-  max-width: 1200px;
+  max-width: 1600px;
   width: 100%;
   margin: 0 auto;
 }
@@ -905,4 +919,37 @@
   &:hover {
     background-color: #b91c1c;
   }
+}
+// Make the overall module card less "card-like" for videos
+.moduleCard {
+    background: transparent;        // Remove white/background
+    border: none;                   // Remove any border
+    border-radius: 0;               // Remove rounded corners
+    box-shadow: none;               // Remove shadow
+    padding: 0;                     // Remove internal padding
+}
+
+// Ensure the video takes full width and height without constraints
+.videoWrapper {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%;         // Maintain 16:9 aspect ratio
+    height: 0;
+    margin-bottom: 2rem;            // Optional spacing below video
+}
+
+.videoIframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;                   // Ensure no border on iframe
+    border-radius: 0;               // No rounded corners
+}
+
+// Optional: If you want the description/content to flow naturally below the video
+.moduleContent {
+    padding: 1rem 2rem;             // Adjust as needed, or remove for full bleed
+    max-width: 100%;
 }

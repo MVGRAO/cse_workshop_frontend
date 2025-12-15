@@ -62,6 +62,13 @@ export async function authenticateWithGoogle(idToken: string, accessToken?: stri
 
   return data;
 }
+export const getAssignmentReview = async (assignmentId: string) => {
+  const res = await fetch(`/api/student/assignments/${assignmentId}/review`, {
+    credentials: 'include'
+  });
+  return res.json();
+};
+
 
 /**
  * Register a new user with email and password
