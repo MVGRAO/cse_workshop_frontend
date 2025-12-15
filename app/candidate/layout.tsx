@@ -16,12 +16,21 @@ export default function CandidateLayout({
   // Hide sidebar when student is taking a course (course player page)
   const isCoursePlayerPage = pathname?.match(/^\/candidate\/courses\/[^/]+$/);
 
+  const isPrivacyPolicyPage = pathname === '/candidate/privacy-policy';
+  const isTermsPage = pathname === '/candidate/terms';
+
+  const hideLayout = 
+    isSignInPage || 
+    isCoursePlayerPage || 
+    isPrivacyPolicyPage || 
+    isTermsPage;
+
   return (
     <SidebarProvider>
       <CandidateProfileProvider>
-        {!isSignInPage && !isCoursePlayerPage && <CandidateNavbar />}
-        {!isSignInPage && !isCoursePlayerPage && <CandidateSidebar />}
-        <div className={isSignInPage || isCoursePlayerPage ? '' : 'ml-[280px] mr-6 mt-[90px] mb-6'}>
+        {!hideLayout && <CandidateNavbar />}
+        {!hideLayout && <CandidateSidebar />}
+        <div className={hideLayout ? '' : 'ml-[280px] mr-6 mt-[90px] mb-6'}>
           {children}
         </div>
       </CandidateProfileProvider>

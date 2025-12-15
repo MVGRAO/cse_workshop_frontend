@@ -1,6 +1,7 @@
 'use client';
 
 import Image from "next/image";
+import Link from 'next/link';
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import styles from "@/styles/employersignin.module.scss";
@@ -125,13 +126,13 @@ export default function EmployerSignIn() {
 
           <p className={styles.agreement}>
             By continuing, you agree to our{" "}
-            <a href="#" className={styles.link}>
+             <Link href="/employer/terms" className={styles.link}>
               Terms of Service
-            </a>{" "}
+            </Link>{" "}
             and{" "}
-            <a href="#" className={styles.link}>
+            <Link href="/employer/privacy-policy" className={styles.link}>
               Privacy Policy
-            </a>
+            </Link>
           </p>
         </div>
 

@@ -11,13 +11,18 @@ export default function EmployerLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const isSignInPage = pathname === '/employer';
+
+  const hideLayout =
+    pathname === '/employer' ||                          // Sign-in page
+    pathname === '/employer/privacy-policy' ||
+    pathname === '/employer/terms' ||
+    pathname === '/employer/request';
 
   return (
-    <SidebarProvider>
-      {!isSignInPage && <EmployerNavbar />}
-      {!isSignInPage && <EmployerSidebar />}
-      <div className={isSignInPage ? '' : 'ml-[280px] mr-6 mt-[90px] mb-6'}>
+   <SidebarProvider>
+      {!hideLayout && <EmployerNavbar />}
+      {!hideLayout && <EmployerSidebar />}
+      <div className={hideLayout ? 'min-h-screen bg-gray-50' : 'ml-[280px] mt-[80px] p-8'}>
         {children}
       </div>
     </SidebarProvider>
