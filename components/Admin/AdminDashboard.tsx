@@ -158,6 +158,26 @@ export default function AdminDashboard() {
   );
 }
 
+interface ModalProps {
+  title: string;
+  children: React.ReactNode;
+  onClose: () => void;
+}
+
+function Modal({ title, children, onClose }: ModalProps) {
+  return (
+    <div className={styles.modalOverlay}>
+      <div className={styles.modalContent}>
+        <h3>{title}</h3>
+        {children}
+        <button className={styles.modalClose} onClick={onClose}>
+          ✕
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // Main dashboard content (to keep the component manageable)
 function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
   const router = useRouter();
@@ -256,9 +276,9 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
           <h1 className={styles.dashboardTitle}>Admin Dashboard</h1>
           <nav style={{ display: 'flex', gap: '2rem', alignItems: 'center' }}>
-            <Link href="/admin" style={{ color: '#374151', textDecoration: 'none', fontWeight: 500 }}>
+            {/* <Link href="/admin" style={{ color: '#374151', textDecoration: 'none', fontWeight: 500 }}>
               Courses
-            </Link>
+            </Link> */}
             <Link href="/admin/requests" style={{ color: '#374151', textDecoration: 'none', fontWeight: 500 }}>
               View Requests
             </Link>
@@ -278,13 +298,13 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
 
       <div className={styles.content}>
         <div className={styles.actions}>
-          <button
+          {/* <button
             onClick={() => router.push('/admin/requests')}
             className={styles.addCourseButton}
             style={{ backgroundColor: '#111827', marginRight: '0.5rem' }}
           >
             View Requests
-          </button>
+          </button> */}
           <button
             onClick={handleCreateCourse}
             className={styles.addCourseButton}
@@ -306,6 +326,7 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
           <div className={styles.coursesList}>
             {/* Active Courses Section */}
             <div className={styles.activeCoursesSection} style={{ marginBottom: '3rem' }}>
+
               <h2 className={styles.sectionTitle}>Courses ({courses.filter(c => !c.resultsGenerated).length})</h2>
               <div className={styles.coursesGrid}>
                 {courses.filter(c => !c.resultsGenerated).map((course) => (
@@ -379,14 +400,12 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
                       </div>
                     )}
 
-                    {showPublishConfirm === course._id && (
-                      <div className={styles.confirmDialog}>
-                        <p>Publish this course?</p>
-                        <div className={styles.confirmActions}>
+                    {showPublishConfirm && (
+                      <Modal title="Publish this course?" onClose={() => setShowPublishConfirm(null)}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
                           <button
-                            onClick={() => handlePublishCourse(course._id)}
+                            onClick={() => handlePublishCourse(showPublishConfirm)}
                             className={styles.confirmButton}
-                            style={{ backgroundColor: '#10b981' }}
                           >
                             Yes, Publish
                           </button>
@@ -397,8 +416,9 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
                             Cancel
                           </button>
                         </div>
-                      </div>
+                      </Modal>
                     )}
+
                   </div>
                 ))}
               </div>
