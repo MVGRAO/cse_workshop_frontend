@@ -6,6 +6,9 @@ import PrivateRoute from '@/components/PrivateRoute';
 import { createCourse, getUsers } from '@/lib/api';
 import { useToast } from '@/components/common/ToastProvider';
 import styles from '@/styles/courseedit.module.scss'; // Reuse edit styles
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 
 export default function CourseCreate() {
     const router = useRouter();
@@ -13,6 +16,35 @@ export default function CourseCreate() {
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [verifiers, setVerifiers] = useState<any[]>([]);
+    const [showVerifierDropdown, setShowVerifierDropdown] = useState(false);
+    const applyFormat = (before: string, after: string = before) => {
+        const textarea = document.getElementById('description-textarea') as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selectedText = description.slice(start, end) || 'text';
+
+        const newText =
+            description.slice(0, start) +
+            before +
+            selectedText +
+            after +
+            description.slice(end);
+
+        setDescription(newText);
+
+        // Restore cursor position
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(
+                start + before.length,
+                start + before.length + selectedText.length
+            );
+        }, 0);
+    };
+
+
 
     // Form State
     const [title, setTitle] = useState('');
@@ -104,7 +136,7 @@ export default function CourseCreate() {
                                     placeholder="e.g. CS101"
                                 />
                             </div>
-
+                            {/* 
                             <div className={styles.formGroup}>
                                 <label>Description</label>
                                 <textarea
@@ -114,7 +146,41 @@ export default function CourseCreate() {
                                     className={styles.textarea}
                                     placeholder="Course description..."
                                 />
+                            </div> */}
+                            <div className={styles.formGroup}>
+                                <label>Description</label>
+
+                                {/* Toolbar */}
+                                <div className={styles.editorToolbar}>
+                                    <button type="button" onClick={() => applyFormat('**', '**')}><b>B</b></button>
+                                    <button type="button" onClick={() => applyFormat('*', '*')}><i>I</i></button>
+                                    <button type="button" onClick={() => applyFormat('`', '`')}>Code</button>
+                                    <button type="button" onClick={() => applyFormat('# ', '')}>H1</button>
+                                    <button type="button" onClick={() => applyFormat('## ', '')}>H2</button>
+                                    <button type="button" onClick={() => applyFormat('- ', '')}>• List</button>
+                                    <button type="button" onClick={() => applyFormat('[text](', ')')}>Link</button>
+                                </div>
+
+                                {/* Editor + Preview */}
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                    <textarea
+                                        id="description-textarea"
+                                        value={description}
+                                        onChange={e => setDescription(e.target.value)}
+                                        rows={10}
+                                        className={styles.textarea}
+                                        placeholder="Write course description using markdown..."
+                                    />
+
+                                    <div className={styles.markdownPreview}>
+                                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                            {description || '_Preview will appear here_'}
+                                        </ReactMarkdown>
+                                    </div>
+                                </div>
                             </div>
+
+
 
                             <div className={styles.formRow}>
                                 <div className={styles.formGroup}>
@@ -125,14 +191,6 @@ export default function CourseCreate() {
                                         onChange={e => setCategory(e.target.value)}
                                         placeholder="e.g. Web Development"
                                     />
-                                </div>
-                                <div className={styles.formGroup}>
-                                    <label>Level</label>
-                                    <select value={level} onChange={e => setLevel(e.target.value)} className={styles.selectInput}>
-                                        <option value="beginner">Beginner</option>
-                                        <option value="intermediate">Intermediate</option>
-                                        <option value="advanced">Advanced</option>
-                                    </select>
                                 </div>
                             </div>
 
@@ -171,24 +229,52 @@ export default function CourseCreate() {
                             {verifiers.length > 0 && (
                                 <div className={styles.formGroup}>
                                     <label>Assign Verifiers</label>
-                                    <div style={{ maxHeight: '150px', overflowY: 'auto', border: '1px solid #ccc', padding: '10px' }}>
-                                        {verifiers.map(v => (
-                                            <label key={v._id} style={{ display: 'block', marginBottom: '5px' }}>
-                                                <input
-                                                    type="checkbox"
-                                                    checked={selectedVerifiers.includes(v._id)}
-                                                    onChange={e => {
-                                                        if (e.target.checked) setSelectedVerifiers([...selectedVerifiers, v._id]);
-                                                        else setSelectedVerifiers(selectedVerifiers.filter(id => id !== v._id));
-                                                    }}
-                                                    style={{ marginRight: '8px' }}
-                                                />
-                                                {v.name} ({v.email})
-                                            </label>
-                                        ))}
+
+                                    {/* Select box */}
+                                    <div
+                                        className={styles.multiSelect}
+                                        onClick={() => setShowVerifierDropdown(!showVerifierDropdown)}
+                                    >
+                                        {selectedVerifiers.length > 0
+                                            ? `${selectedVerifiers.length} verifier(s) selected`
+                                            : 'Select verifiers'}
+                                        <span className={styles.arrow}>▾</span>
                                     </div>
+
+                                    {/* Options dropdown */}
+                                    {showVerifierDropdown && (
+                                        <div className={styles.optionsBox}>
+                                            {verifiers.map((v) => (
+                                                <div key={v._id} className={styles.optionItem}>
+                                                    <label>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedVerifiers.includes(v._id)}
+                                                            onChange={() => {
+                                                                if (selectedVerifiers.includes(v._id)) {
+                                                                    setSelectedVerifiers(
+                                                                        selectedVerifiers.filter(id => id !== v._id)
+                                                                    );
+                                                                } else {
+                                                                    setSelectedVerifiers([...selectedVerifiers, v._id]);
+                                                                }
+                                                            }}
+                                                        />
+                                                        {v.name} ({v.email})
+                                                    </label>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    <small className={styles.formHint}>
+                                        You can select multiple verifiers
+                                    </small>
                                 </div>
                             )}
+
+
+
 
                             <div className={styles.formActions}>
                                 <button type="button" onClick={() => router.back()} className={styles.cancelButton}>
