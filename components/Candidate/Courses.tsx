@@ -8,8 +8,6 @@ import styles from '@/styles/courses.module.scss';
 import { useCandidateProfile } from '@/context/CandidateProfileContext';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
-  const { user } = useCandidateProfile();
-
 
 interface Course {
   _id: string;
@@ -26,6 +24,7 @@ interface Course {
 
 export default function Courses() {
   const { toast } = useToast();
+  const { user } = useCandidateProfile();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
