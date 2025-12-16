@@ -206,12 +206,12 @@ router.push('/candidate/dashboard');
           priority
         />
         
-        <div className={styles.signInTextContainer}>
+        {/* <div className={styles.signInTextContainer}>
           <p className={styles.subheading}>Sign in to</p>
           <p className={styles.purposeText}>
             Access CSE Workshop Courses and Resources
           </p>
-        </div>
+        </div> */}
 
         <form onSubmit={handleSubmit} className={styles.formContainer}>
           {/* Your existing form fields stay 100% unchanged */}

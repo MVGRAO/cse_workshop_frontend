@@ -21,6 +21,8 @@ $font-family: var(--font-roboto), 'Roboto', -apple-system, BlinkMacSystemFont, '
   background-color: $background-color;
   font-family: $font-family;
   padding: 4rem 1rem 2rem;
+  padding-top: 0%;
+  // height: 100vh;
 }
 
 // "Candidate Sign In" title
