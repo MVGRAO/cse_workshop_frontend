@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ChevronLeft, ChevronRight, Settings, BookOpen, CheckCircle, MessageSquare, Home } from 'lucide-react';
 import { useSidebar } from '@/context/SidebarContext';
-import { getCurrentUser } from '@/lib/api';
+import { getCurrentUser, getAuthToken } from '@/lib/api';
 import styles from '@/styles/sidebar.module.scss';
 
 const EmployerSidebar: React.FC = () => {
@@ -17,6 +17,10 @@ const EmployerSidebar: React.FC = () => {
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        const token = getAuthToken('verifier');
+        if (!token) {
+          return;
+        }
         const user = await getCurrentUser('verifier');
         if (user?.data) {
           setUserName(user.data.name || 'Verifier');

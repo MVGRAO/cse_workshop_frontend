@@ -1,12 +1,11 @@
 'use client';
 
 import PrivateRoute from '@/components/PrivateRoute';
-import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getAuthToken, enrollInCourse, getStudentEnrollments } from '@/lib/api';
 import { useToast } from '@/components/common/ToastProvider';
-import { useRouter } from 'next/navigation';
 import styles from '@/styles/courses.module.scss';
+import { useCandidateProfile } from '@/context/CandidateProfileContext';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
 
@@ -15,17 +14,17 @@ interface Course {
   title: string;
   description: string;
   status: string;
+  image?: string;
   enrolled?: boolean;
   enrollment?: any;
   certificate?: any;
-  showResultsOptions?: boolean;
   verifiers?: { _id: string; name: string; email: string }[];
   availableVerifiers?: { _id: string; name: string; email: string }[];
 }
 
 export default function Courses() {
-  const router = useRouter();
   const { toast } = useToast();
+  const { user } = useCandidateProfile();
   const [courses, setCourses] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -50,7 +49,6 @@ export default function Courses() {
       const token = getAuthToken('student');
       if (!token) return;
 
-      // Parallel fetch courses, enrollments, and certificates
       const [coursesRes, enrollmentsRes, certificatesRes] = await Promise.all([
         fetch(`${API_BASE_URL}/student/courses/available`, {
           headers: { 'Authorization': `Bearer ${token}` }
@@ -66,24 +64,18 @@ export default function Courses() {
         const enrollmentsData = enrollmentsRes.data || [];
         const certificatesData = certificatesRes.data || [];
 
-        // Create specialized maps
         const enrollmentMap = new Map();
         enrollmentsData.forEach((e: any) => {
-          // Handle both populated and unpopulated course fields
           const rawCourse = e.course;
           const courseId = rawCourse ? (rawCourse._id ?? rawCourse).toString() : null;
-          if (courseId) {
-            enrollmentMap.set(courseId, e);
-          }
+          if (courseId) enrollmentMap.set(courseId, e);
         });
 
         const certificateMap = new Map();
         certificatesData.forEach((c: any) => {
           const rawCourse = c.course;
           const courseId = rawCourse ? (rawCourse._id ?? rawCourse).toString() : null;
-          if (courseId) {
-            certificateMap.set(courseId, c);
-          }
+          if (courseId) certificateMap.set(courseId, c);
         });
 
         if (coursesData.success) {
@@ -95,7 +87,6 @@ export default function Courses() {
               enrolled: !!enrollment,
               enrollment,
               certificate: certificateMap.get(course._id),
-              showResultsOptions: false
             };
           });
           setCourses(formattedCourses);
@@ -144,7 +135,6 @@ export default function Courses() {
         variant: 'success',
       });
 
-      // Refresh the courses list to reflect the new enrollment
       await fetchData();
       setShowForm(false);
       setSelectedCourse(null);
@@ -180,43 +170,42 @@ export default function Courses() {
             <div className={styles.coursesGrid}>
               {courses.map((course) => (
                 <div key={course._id} className={styles.courseCard}>
+                  {/* Course Image */}
+                  <div className={styles.courseImageWrapper}>
+                    <img
+                      src={course.image || 'https://via.placeholder.com/400x200?text=Course+Image'}
+                      alt={course.title}
+                      className={styles.courseImage}
+                    />
+                    {course.enrolled && (
+                      <div className={styles.enrolledBadge}>
+                        Enrolled
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Content */}
                   <div className={styles.cardContent}>
-                    <h3 className={styles.courseTitle}>
-                      {course.title}
-                    </h3>
+                    <h3 className={styles.courseTitle}>{course.title}</h3>
                     <p className={styles.courseDescription}>
                       {course.description || 'No description available'}
                     </p>
 
                     <div className={styles.cardActions}>
                       {course.enrolled ? (
-                        <div className={styles.enrolledSection}>
-                          <button
-                            disabled
-                            className={styles.alreadyEnrolledButton}
-                            style={{
-                              backgroundColor: '#10b981',
-                              opacity: 0.7,
-                              cursor: 'not-allowed',
-                              color: 'white',
-                              padding: '0.5rem 1rem',
-                              borderRadius: '0.375rem',
-                              border: 'none',
-                              fontWeight: 500
-                            }}
-                          >
-                            Already Enrolled
-                          </button>
-                        </div>
+                        <button
+                          disabled
+                          className={styles.alreadyEnrolledButton}
+                        >
+                          Already Enrolled
+                        </button>
                       ) : (
-                        <div className={styles.enrollActions}>
-                          <button
-                            onClick={() => openEnrollForm(course)}
-                            className={styles.enrollButton}
-                          >
-                            Enroll
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => openEnrollForm(course)}
+                          className={styles.enrollButton}
+                        >
+                          Enroll Now
+                        </button>
                       )}
                     </div>
                   </div>
@@ -227,6 +216,7 @@ export default function Courses() {
         </div>
       </div>
 
+      {/* Enrollment Modal - EXACTLY AS YOUR ORIGINAL CODE */}
       {showForm && selectedCourse && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalContent}>

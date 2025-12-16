@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PrivateRoute from '@/components/PrivateRoute';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+
 import {
   getCourseDetails,
   updateCourse,
@@ -570,10 +573,12 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
                     <textarea
                       value={currentModule.description}
                       onChange={e => handleModuleChange('description', e.target.value)}
-                      rows={5}
+                      rows={10} // bigger textarea
                       className={styles.textarea}
+                      placeholder="Enter module description..."
                     />
                   </div>
+
                   <div className={styles.formGroup}>
                     <label>Video URL</label>
                     <input
