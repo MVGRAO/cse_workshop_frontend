@@ -62,12 +62,14 @@ export async function authenticateWithGoogle(idToken: string, accessToken?: stri
 
   return data;
 }
-export const getAssignmentReview = async (assignmentId: string) => {
-  const res = await fetch(`/api/student/assignments/${assignmentId}/review`, {
-    credentials: 'include'
-  });
-  return res.json();
-};
+export async function getAssignmentReview(assignmentId: string): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/student/assignments/${assignmentId}/review`, {
+    method: 'GET',
+  }, 'student');
+
+  const data = await response.json();
+  return data;
+}
 
 
 /**
@@ -792,6 +794,33 @@ export async function getUsers(role?: string): Promise<any> {
 
   if (!response.ok) {
     throw new Error(data.message || 'Failed to fetch users');
+  }
+
+  return data;
+}
+
+/**
+ * Upload an image
+ */
+export async function uploadImage(file: File): Promise<any> {
+  const formData = new FormData();
+  formData.append('image', file);
+
+  const token = getAuthToken('admin');
+  if (!token) throw new Error('No authentication token found');
+
+  const response = await fetch(`${API_BASE_URL}/upload/image`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+    },
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Image upload failed');
   }
 
   return data;

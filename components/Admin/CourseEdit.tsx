@@ -15,7 +15,8 @@ import {
   createModule,
   createAssignment,
   updateAssignment,
-  getUsers
+  getUsers,
+  uploadImage
 } from '@/lib/api';
 import { useToast } from '@/components/common/ToastProvider';
 import styles from '@/styles/courseedit.module.scss';
@@ -69,6 +70,8 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
   const [numLessons, setNumLessons] = useState(1);
   const [allVerifiers, setAllVerifiers] = useState<any[]>([]);
   const [selectedVerifiers, setSelectedVerifiers] = useState<string[]>([]);
+  const [imageUrl, setImageUrl] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   // Lesson and module data
   const [lessons, setLessons] = useState<LessonData[]>([]);
@@ -77,6 +80,61 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
   const [currentStep, setCurrentStep] = useState<'course' | 'lesson-setup' | 'module' | 'complete'>('course');
   const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
   const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
+
+  /* =======================
+     MARKDOWN HELPERS
+  ======================== */
+  const applyInlineFormat = (before: string, after = before) => {
+    const textarea = document.getElementById('module-description-textarea') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const currentDesc = lessons[currentLessonIndex].modules[currentModuleIndex].description || '';
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selected = currentDesc.slice(start, end) || 'text';
+
+    const updated =
+      currentDesc.slice(0, start) +
+      before +
+      selected +
+      after +
+      currentDesc.slice(end);
+
+    handleModuleChange('description', updated);
+
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(
+        start + before.length,
+        start + before.length + selected.length
+      );
+    }, 0);
+  };
+
+  const applyHeading = (level: 1 | 2) => {
+    const textarea = document.getElementById('module-description-textarea') as HTMLTextAreaElement;
+    if (!textarea) return;
+
+    const currentDesc = lessons[currentLessonIndex].modules[currentModuleIndex].description || '';
+    const cursor = textarea.selectionStart;
+    const lines = currentDesc.split('\n');
+
+    let charCount = 0;
+    const lineIndex = lines.findIndex(line => {
+      charCount += line.length + 1;
+      return charCount > cursor;
+    });
+
+    const headingPrefix = level === 1 ? '# ' : '## ';
+    const currentLine = lines[lineIndex] || '';
+
+    const cleanedLine = currentLine.replace(/^#{1,2}\s/, '');
+    lines[lineIndex] = headingPrefix + cleanedLine;
+
+    handleModuleChange('description', lines.join('\n'));
+
+    setTimeout(() => textarea.focus(), 0);
+  };
 
   useEffect(() => {
     fetchCourseData();
@@ -95,6 +153,7 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
         setCourseData(course);
         setCourseName(course.title);
         setCourseCode(course.code);
+        setImageUrl(course.image || '');
 
         // set selected verifiers
         if (course.verifiers) {
@@ -157,6 +216,26 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
     }
   };
 
+
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const res = await uploadImage(file);
+      if (res.success) {
+        setImageUrl(res.data.url);
+        toast({ title: 'Success', description: 'Image uploaded successfully', variant: 'success' });
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Upload failed', variant: 'error' });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleCourseNext = async () => {
     if (!courseName.trim() || !courseCode.trim() || numLessons < 1) {
       toast({ title: 'Validation Error', description: 'Please fill all required fields', variant: 'error' });
@@ -168,7 +247,8 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
       await updateCourse(courseId, {
         title: courseName,
         code: courseCode.toUpperCase(),
-        verifiers: selectedVerifiers
+        verifiers: selectedVerifiers,
+        image: imageUrl
       });
 
       if (lessons.length < numLessons) {
@@ -457,6 +537,21 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
                     />
                   </div>
                   <div className={styles.formGroup}>
+                    <label>Course Image</label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={isSubmitting || uploading}
+                    />
+                    {uploading && <small>Uploading...</small>}
+                    {imageUrl && (
+                      <div style={{ marginTop: '0.5rem' }}>
+                        <img src={imageUrl} alt="Preview" style={{ maxHeight: '200px', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
+                      </div>
+                    )}
+                  </div>
+                  <div className={styles.formGroup}>
                     <label>Number of Lessons</label>
                     <input
                       type="number"
@@ -570,13 +665,28 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
                   </div>
                   <div className={styles.formGroup}>
                     <label>Description (Markdown)</label>
-                    <textarea
-                      value={currentModule.description}
-                      onChange={e => handleModuleChange('description', e.target.value)}
-                      rows={10} // bigger textarea
-                      className={styles.textarea}
-                      placeholder="Enter module description..."
-                    />
+                    <div className={styles.editorToolbar}>
+                      <button type="button" onClick={() => applyInlineFormat('**')}>B</button>
+                      <button type="button" onClick={() => applyInlineFormat('*')}>I</button>
+                      <button type="button" onClick={() => applyInlineFormat('`')}>Code</button>
+                      <button type="button" onClick={() => applyHeading(1)}>H1</button>
+                      <button type="button" onClick={() => applyHeading(2)}>H2</button>
+                      <button type="button" onClick={() => applyInlineFormat('- ', '')}>List</button>
+                    </div>
+
+                    <div className={styles.editorGrid}>
+                      <textarea
+                        id="module-description-textarea"
+                        value={currentModule.description}
+                        onChange={e => handleModuleChange('description', e.target.value)}
+                        placeholder="Write module description using Markdown..."
+                      />
+                      <div className={styles.markdownPreview}>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {currentModule.description || '_Live preview will appear here_'}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
                   </div>
 
                   <div className={styles.formGroup}>

@@ -14,7 +14,7 @@ export default function CandidateLayout({
   const pathname = usePathname();
   const isSignInPage = pathname === '/candidate';
   // Hide sidebar when student is taking a course (course player page)
-  const isCoursePlayerPage = pathname?.match(/^\/candidate\/courses\/[^/]+$/);
+  const isCoursePlayerPage = pathname?.match(/^\/candidate\/courses\/[^/]+$/) || pathname?.match(/^\/candidate\/courses\/[^/]+\/view$/);
 
   return (
     <SidebarProvider>

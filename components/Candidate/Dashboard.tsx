@@ -21,22 +21,40 @@ export default function Dashboard() {
         const token = getAuthToken('student');
         if (!token) return;
 
-        const response = await fetch(`${API_BASE_URL}/student/dashboard`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+        const [dashboardResponse, certificatesResponse] = await Promise.all([
+          fetch(`${API_BASE_URL}/student/dashboard`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          }),
+          fetch(`${API_BASE_URL}/student/certificates`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+          })
+        ]);
 
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success) {
-            setStats({
-              enrollments: (data.data?.ongoingCourses?.length || 0) + (data.data?.retakeCourses?.length || 0),
-              completed: data.data?.completedCourses?.length || 0,
-              certificates: data.data?.certificatesCount || 0,
-            });
+        let certificatesCount = 0;
+        let enrollmentsCount = 0;
+        let completedCount = 0;
+
+        if (dashboardResponse.ok) {
+          const dashboardData = await dashboardResponse.json();
+          if (dashboardData.success) {
+            enrollmentsCount = (dashboardData.data?.ongoingCourses?.length || 0) + (dashboardData.data?.retakeCourses?.length || 0);
+            completedCount = dashboardData.data?.completedCourses?.length || 0;
           }
         }
+
+        if (certificatesResponse.ok) {
+          const certData = await certificatesResponse.json();
+          if (certData.success) {
+            certificatesCount = certData.data?.length || 0;
+          }
+        }
+
+        setStats({
+          enrollments: enrollmentsCount,
+          completed: completedCount,
+          certificates: certificatesCount,
+        });
+
       } catch (error) {
         console.error('Failed to fetch dashboard data:', error);
       } finally {

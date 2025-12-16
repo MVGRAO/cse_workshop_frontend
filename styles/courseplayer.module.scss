@@ -435,9 +435,9 @@
     box-shadow: none;
   }
 
-  
 
- 
+
+
 
   .navigationButtons {
     flex-direction: column;
@@ -920,36 +920,138 @@
     background-color: #b91c1c;
   }
 }
+
 // Make the overall module card less "card-like" for videos
 .moduleCard {
-    background: transparent;        // Remove white/background
-    border: none;                   // Remove any border
-    border-radius: 0;               // Remove rounded corners
-    box-shadow: none;               // Remove shadow
-    padding: 0;                     // Remove internal padding
+  background: transparent; // Remove white/background
+  border: none; // Remove any border
+  border-radius: 0; // Remove rounded corners
+  box-shadow: none; // Remove shadow
+  padding: 0; // Remove internal padding
 }
 
 // Ensure the video takes full width and height without constraints
 .videoWrapper {
-    position: relative;
-    width: 100%;
-    padding-bottom: 56.25%;         // Maintain 16:9 aspect ratio
-    height: 0;
-    margin-bottom: 2rem;            // Optional spacing below video
+  position: relative;
+  width: 100%;
+  padding-bottom: 56.25%; // Maintain 16:9 aspect ratio
+  height: 0;
+  margin-bottom: 2rem; // Optional spacing below video
 }
 
 .videoIframe {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    border: none;                   // Ensure no border on iframe
-    border-radius: 0;               // No rounded corners
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none; // Ensure no border on iframe
+  border-radius: 0; // No rounded corners
 }
 
 // Optional: If you want the description/content to flow naturally below the video
 .moduleContent {
-    padding: 1rem 2rem;             // Adjust as needed, or remove for full bleed
-    max-width: 100%;
+  padding: 1rem 2rem; // Adjust as needed, or remove for full bleed
+  max-width: 100%;
+}
+
+/* Stepper Styles for Course Player Sidebar */
+.stepperContainer {
+  position: relative;
+  padding: 1rem 1.5rem;
+}
+
+.lessonStepperGroup {
+  margin-bottom: 0.5rem;
+}
+
+.lessonHeader {
+  font-weight: 600;
+  color: #374151;
+  font-size: 0.95rem;
+  margin-bottom: 0.75rem;
+  padding-left: 0.5rem;
+}
+
+.stepperItem {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  padding-bottom: 1.5rem;
+  cursor: pointer;
+
+  &:last-child {
+    padding-bottom: 0.5rem;
+
+    .stepperLine {
+      display: none;
+    }
+  }
+}
+
+.stepperNode {
+  position: relative;
+  z-index: 2;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+  background-color: white;
+  border: 2px solid #d1d5db;
+  flex-shrink: 0;
+  margin-right: 1rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+
+  &.active {
+    background-color: #a78bfa;
+    /* Light purple */
+    border-color: #a78bfa;
+    box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2);
+  }
+
+  &.completed {
+    background-color: #a78bfa;
+    /* Light purple */
+    border-color: #a78bfa;
+    color: white;
+  }
+}
+
+.stepperLine {
+  position: absolute;
+  top: 1.25rem;
+  left: 0.45rem;
+  width: 2px;
+  height: calc(100% - 0.5rem);
+  background-color: #e5e7eb;
+  z-index: 1;
+
+  &.completed {
+    background-color: #a78bfa;
+  }
+}
+
+.stepperContent {
+  flex: 1;
+  padding-top: 0.1rem;
+}
+
+.stepperTitle {
+  font-size: 0.9rem;
+  color: #4b5563;
+  transition: color 0.2s;
+
+  &.active {
+    font-weight: 600;
+    color: #111827;
+  }
+}
+
+.stepperType {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 0.1rem;
 }

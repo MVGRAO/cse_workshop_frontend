@@ -156,7 +156,7 @@ export default function MyCourses() {
                           </Link>
                           {enrollment.course?._id ? (
                             <Link
-                              href={`/candidate/courses/${enrollment.course._id}`}
+                              href={`/candidate/courses/${enrollment.course._id}/view`}
                               className={styles.startButton}
                               style={{ backgroundColor: '#4b5563' }}
                             >

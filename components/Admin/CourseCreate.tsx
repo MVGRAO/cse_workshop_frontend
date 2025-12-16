@@ -3,12 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import PrivateRoute from '@/components/PrivateRoute';
-import { createCourse, getUsers } from '@/lib/api';
+import { createCourse, getUsers, uploadImage } from '@/lib/api';
 import { useToast } from '@/components/common/ToastProvider';
-import styles from '@/styles/courseedit.module.scss'; // Reuse edit styles
+import styles from '@/styles/courseedit.module.scss';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-
 
 export default function CourseCreate() {
     const router = useRouter();
@@ -17,36 +16,10 @@ export default function CourseCreate() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [verifiers, setVerifiers] = useState<any[]>([]);
     const [showVerifierDropdown, setShowVerifierDropdown] = useState(false);
-    const applyFormat = (before: string, after: string = before) => {
-        const textarea = document.getElementById('description-textarea') as HTMLTextAreaElement;
-        if (!textarea) return;
 
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const selectedText = description.slice(start, end) || 'text';
-
-        const newText =
-            description.slice(0, start) +
-            before +
-            selectedText +
-            after +
-            description.slice(end);
-
-        setDescription(newText);
-
-        // Restore cursor position
-        setTimeout(() => {
-            textarea.focus();
-            textarea.setSelectionRange(
-                start + before.length,
-                start + before.length + selectedText.length
-            );
-        }, 0);
-    };
-
-
-
-    // Form State
+    /* =======================
+       FORM STATE
+    ======================== */
     const [title, setTitle] = useState('');
     const [code, setCode] = useState('');
     const [description, setDescription] = useState('');
@@ -56,31 +29,115 @@ export default function CourseCreate() {
     const [endTimestamp, setEndTimestamp] = useState('');
     const [hasPractical, setHasPractical] = useState(false);
     const [selectedVerifiers, setSelectedVerifiers] = useState<string[]>([]);
+    const [imageUrl, setImageUrl] = useState('');
+    const [uploading, setUploading] = useState(false);
 
+    /* =======================
+       MARKDOWN FORMATTERS
+    ======================== */
+    const applyInlineFormat = (before: string, after = before) => {
+        const textarea = document.getElementById('description-textarea') as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const selected = description.slice(start, end) || 'text';
+
+        const updated =
+            description.slice(0, start) +
+            before +
+            selected +
+            after +
+            description.slice(end);
+
+        setDescription(updated);
+
+        setTimeout(() => {
+            textarea.focus();
+            textarea.setSelectionRange(
+                start + before.length,
+                start + before.length + selected.length
+            );
+        }, 0);
+    };
+
+    const applyHeading = (level: 1 | 2) => {
+        const textarea = document.getElementById('description-textarea') as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        const cursor = textarea.selectionStart;
+        const lines = description.split('\n');
+
+        let charCount = 0;
+        const lineIndex = lines.findIndex(line => {
+            charCount += line.length + 1;
+            return charCount > cursor;
+        });
+
+        const headingPrefix = level === 1 ? '# ' : '## ';
+        const currentLine = lines[lineIndex] || '';
+
+        const cleanedLine = currentLine.replace(/^#{1,2}\s/, '');
+        lines[lineIndex] = headingPrefix + cleanedLine;
+
+        setDescription(lines.join('\n'));
+
+        setTimeout(() => textarea.focus(), 0);
+    };
+
+    /* =======================
+       FETCH VERIFIERS
+    ======================== */
     useEffect(() => {
-        // Fetch verifiers for selection
         const fetchVerifiers = async () => {
             try {
-                const response = await getUsers('verifier');
-                if (response.success) {
-                    setVerifiers(response.data);
-                }
-            } catch (error) {
-                console.error('Failed to load verifiers:', error);
+                const res = await getUsers('verifier');
+                if (res.success) setVerifiers(res.data);
+            } catch (err) {
+                console.error(err);
             }
         };
         fetchVerifiers();
     }, []);
 
+    /* =======================
+       IMAGE UPLOAD
+    ======================== */
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        try {
+            setUploading(true);
+            const res = await uploadImage(file);
+            if (res.success) {
+                setImageUrl(res.data.url);
+                toast({ title: 'Success', description: 'Image uploaded successfully', variant: 'success' });
+            }
+        } catch (error: any) {
+            toast({ title: 'Error', description: error.message || 'Upload failed', variant: 'error' });
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    /* =======================
+       SUBMIT HANDLER
+    ======================== */
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!title.trim() || !code.trim()) {
-            toast({ title: 'Validation Error', description: 'Title and Code are required', variant: 'error' });
+            toast({
+                title: 'Validation Error',
+                description: 'Course title and code are required',
+                variant: 'error'
+            });
             return;
         }
 
         setIsSubmitting(true);
+
         try {
             const payload = {
                 title,
@@ -92,17 +149,25 @@ export default function CourseCreate() {
                 verifiers: selectedVerifiers,
                 startTimestamp: startTimestamp ? new Date(startTimestamp).toISOString() : undefined,
                 endTimestamp: endTimestamp ? new Date(endTimestamp).toISOString() : undefined,
+                image: imageUrl,
             };
 
-            const response = await createCourse(payload);
+            const res = await createCourse(payload);
 
-            if (response.success && response.data?._id) {
-                toast({ title: 'Success', description: 'Course created successfully!', variant: 'success' });
-                // Redirect to edit page to add content
-                router.push(`/admin/courses/${response.data._id}/edit`);
+            if (res.success && res.data?._id) {
+                toast({
+                    title: 'Success',
+                    description: 'Course created successfully',
+                    variant: 'success'
+                });
+                router.push(`/admin/courses/${res.data._id}/edit`);
             }
-        } catch (error: any) {
-            toast({ title: 'Error', description: error.message || 'Failed to create course', variant: 'error' });
+        } catch (err: any) {
+            toast({
+                title: 'Error',
+                description: err.message || 'Failed to create course',
+                variant: 'error'
+            });
         } finally {
             setIsSubmitting(false);
         }
@@ -114,174 +179,155 @@ export default function CourseCreate() {
                 <div className={styles.wrapper}>
                     <div className={styles.courseForm}>
                         <h2 className={styles.formTitle}>Create New Course</h2>
+
                         <form onSubmit={handleCreate} className={styles.formSection}>
+                            {/* TITLE */}
                             <div className={styles.formGroup}>
                                 <label>Course Title *</label>
                                 <input
-                                    type="text"
                                     value={title}
                                     onChange={e => setTitle(e.target.value)}
-                                    required
-                                    placeholder="e.g. Introduction to React"
+                                    placeholder="Introduction to React"
                                 />
                             </div>
 
+                            {/* CODE */}
                             <div className={styles.formGroup}>
                                 <label>Course Code *</label>
                                 <input
-                                    type="text"
                                     value={code}
                                     onChange={e => setCode(e.target.value.toUpperCase())}
-                                    required
-                                    placeholder="e.g. CS101"
+                                    placeholder="CS101"
                                 />
                             </div>
-                            {/* 
-                            <div className={styles.formGroup}>
-                                <label>Description</label>
-                                <textarea
-                                    value={description}
-                                    onChange={e => setDescription(e.target.value)}
-                                    rows={4}
-                                    className={styles.textarea}
-                                    placeholder="Course description..."
-                                />
-                            </div> */}
-                            <div className={styles.formGroup}>
-                                <label>Description</label>
 
-                                {/* Toolbar */}
+                            {/* IMAGE */}
+                            <div className={styles.formGroup}>
+                                <label>Course Cover Image</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageUpload}
+                                    disabled={uploading}
+                                />
+                                {uploading && <small>Uploading...</small>}
+                                {imageUrl && (
+                                    <div style={{ marginTop: '0.5rem' }}>
+                                        <img src={imageUrl} alt="Preview" style={{ maxHeight: '200px', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* DESCRIPTION */}
+                            <div className={styles.formGroup}>
+                                <label>Course Description</label>
+
                                 <div className={styles.editorToolbar}>
-                                    <button type="button" onClick={() => applyFormat('**', '**')}><b>B</b></button>
-                                    <button type="button" onClick={() => applyFormat('*', '*')}><i>I</i></button>
-                                    <button type="button" onClick={() => applyFormat('`', '`')}>Code</button>
-                                    <button type="button" onClick={() => applyFormat('# ', '')}>H1</button>
-                                    <button type="button" onClick={() => applyFormat('## ', '')}>H2</button>
-                                    <button type="button" onClick={() => applyFormat('- ', '')}>• List</button>
-                                    <button type="button" onClick={() => applyFormat('[text](', ')')}>Link</button>
+                                    <button type="button" onClick={() => applyInlineFormat('**')}>B</button>
+                                    <button type="button" onClick={() => applyInlineFormat('*')}>I</button>
+                                    <button type="button" onClick={() => applyInlineFormat('`')}>Code</button>
+                                    <button type="button" onClick={() => applyHeading(1)}>H1</button>
+                                    <button type="button" onClick={() => applyHeading(2)}>H2</button>
+                                    <button type="button" onClick={() => applyInlineFormat('- ', '')}>List</button>
                                 </div>
 
-                                {/* Editor + Preview */}
-                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                                <div className={styles.editorGrid}>
                                     <textarea
                                         id="description-textarea"
                                         value={description}
                                         onChange={e => setDescription(e.target.value)}
-                                        rows={10}
-                                        className={styles.textarea}
-                                        placeholder="Write course description using markdown..."
+                                        placeholder="Write course description using Markdown..."
                                     />
-
                                     <div className={styles.markdownPreview}>
                                         <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                                            {description || '_Preview will appear here_'}
+                                            {description || '_Live preview will appear here_'}
                                         </ReactMarkdown>
                                     </div>
                                 </div>
                             </div>
 
-
-
-                            <div className={styles.formRow}>
-                                <div className={styles.formGroup}>
-                                    <label>Category</label>
-                                    <input
-                                        type="text"
-                                        value={category}
-                                        onChange={e => setCategory(e.target.value)}
-                                        placeholder="e.g. Web Development"
-                                    />
-                                </div>
-                            </div>
-
+                            {/* DATES */}
                             <div className={styles.formRow}>
                                 <div className={styles.formGroup}>
                                     <label>Start Date</label>
-                                    <input
-                                        type="date"
-                                        value={startTimestamp}
-                                        onChange={e => setStartTimestamp(e.target.value)}
-                                    />
+                                    <input type="date" value={startTimestamp} onChange={e => setStartTimestamp(e.target.value)} />
+                                    <small>Format: DD-MM-YYYY</small>
                                 </div>
+
                                 <div className={styles.formGroup}>
                                     <label>End Date</label>
-                                    <input
-                                        type="date"
-                                        value={endTimestamp}
-                                        onChange={e => setEndTimestamp(e.target.value)}
-                                    />
+                                    <input type="date" value={endTimestamp} onChange={e => setEndTimestamp(e.target.value)} />
+                                    <small>Format: DD-MM-YYYY</small>
                                 </div>
                             </div>
 
+                            {/* PRACTICAL */}
                             <div className={styles.formGroup}>
-                                <label>
+                                <label className={styles.checkboxLabel}>
                                     <input
                                         type="checkbox"
                                         checked={hasPractical}
                                         onChange={e => setHasPractical(e.target.checked)}
-                                        style={{ marginRight: '8px' }}
                                     />
-                                    Has Practical Session?
+                                    Has Practical Session
                                 </label>
                             </div>
 
-                            {/* Basic Verifier Selection (mock UI, real select would be better) */}
+                            {/* VERIFIERS */}
                             {verifiers.length > 0 && (
                                 <div className={styles.formGroup}>
                                     <label>Assign Verifiers</label>
 
-                                    {/* Select box */}
                                     <div
                                         className={styles.multiSelect}
                                         onClick={() => setShowVerifierDropdown(!showVerifierDropdown)}
                                     >
-                                        {selectedVerifiers.length > 0
-                                            ? `${selectedVerifiers.length} verifier(s) selected`
+                                        {selectedVerifiers.length
+                                            ? `${selectedVerifiers.length} selected`
                                             : 'Select verifiers'}
-                                        <span className={styles.arrow}>▾</span>
+                                        <span>▾</span>
                                     </div>
 
-                                    {/* Options dropdown */}
                                     {showVerifierDropdown && (
                                         <div className={styles.optionsBox}>
-                                            {verifiers.map((v) => (
-                                                <div key={v._id} className={styles.optionItem}>
-                                                    <label>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={selectedVerifiers.includes(v._id)}
-                                                            onChange={() => {
-                                                                if (selectedVerifiers.includes(v._id)) {
-                                                                    setSelectedVerifiers(
-                                                                        selectedVerifiers.filter(id => id !== v._id)
-                                                                    );
-                                                                } else {
-                                                                    setSelectedVerifiers([...selectedVerifiers, v._id]);
-                                                                }
-                                                            }}
-                                                        />
-                                                        {v.name} ({v.email})
-                                                    </label>
-                                                </div>
+                                            {verifiers.map(v => (
+                                                <label key={v._id}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={selectedVerifiers.includes(v._id)}
+                                                        onChange={() =>
+                                                            setSelectedVerifiers(prev =>
+                                                                prev.includes(v._id)
+                                                                    ? prev.filter(id => id !== v._id)
+                                                                    : [...prev, v._id]
+                                                            )
+                                                        }
+                                                    />
+                                                    {v.name} ({v.email})
+                                                </label>
                                             ))}
                                         </div>
                                     )}
 
-                                    <small className={styles.formHint}>
-                                        You can select multiple verifiers
-                                    </small>
+                                    <small>You can select multiple verifiers</small>
                                 </div>
                             )}
 
-
-
-
+                            {/* ACTIONS */}
                             <div className={styles.formActions}>
-                                <button type="button" onClick={() => router.back()} className={styles.cancelButton}>
+                                <button
+                                    type="button"
+                                    onClick={() => router.back()}
+                                    className={styles.cancelButton}
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" className={styles.nextButton} disabled={isSubmitting}>
-                                    {isSubmitting ? 'Creating...' : 'Create Course'}
+                                <button
+                                    type="submit"
+                                    disabled={isSubmitting}
+                                    className={styles.nextButton}
+                                >
+                                    {isSubmitting ? 'Creating…' : 'Create Course'}
                                 </button>
                             </div>
                         </form>

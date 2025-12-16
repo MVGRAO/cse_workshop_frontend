@@ -330,7 +330,12 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
               <h2 className={styles.sectionTitle}>Courses ({courses.filter(c => !c.resultsGenerated).length})</h2>
               <div className={styles.coursesGrid}>
                 {courses.filter(c => !c.resultsGenerated).map((course) => (
-                  <div key={course._id} className={styles.courseCard}>
+                  <div
+                    key={course._id}
+                    className={styles.courseCard}
+                    onClick={() => router.push(`/admin/courses/${course._id}/details`)}
+                    style={{ cursor: 'pointer' }}
+                  >
                     <div className={styles.courseCardContent}>
                       <h3 className={styles.courseTitle}>{course.title}</h3>
                       <p className={styles.courseCode}>Code: {course.code}</p>
@@ -340,7 +345,7 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
                       )}
                     </div>
 
-                    <div className={styles.courseCardActions}>
+                    <div className={styles.courseCardActions} onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => router.push(`/admin/courses/${course._id}/edit`)}
                         className={styles.updateButton}
@@ -359,15 +364,7 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
                       </button>
                     </div>
 
-                    {course.status !== 'published' &&
-                      (course.lessonCount > 0 || course.moduleCount > 0) && (
-                        <button
-                          onClick={() => setShowPublishConfirm(course._id)}
-                          className={styles.publishButton}
-                        >
-                          Publish Course
-                        </button>
-                      )}
+
 
                     {course.status === 'published' && (
                       <div style={{ width: '100%', marginTop: '0.5rem' }}>
@@ -400,24 +397,7 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
                       </div>
                     )}
 
-                    {showPublishConfirm && (
-                      <Modal title="Publish this course?" onClose={() => setShowPublishConfirm(null)}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem' }}>
-                          <button
-                            onClick={() => handlePublishCourse(showPublishConfirm)}
-                            className={styles.confirmButton}
-                          >
-                            Yes, Publish
-                          </button>
-                          <button
-                            onClick={() => setShowPublishConfirm(null)}
-                            className={styles.cancelButton}
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      </Modal>
-                    )}
+
 
                   </div>
                 ))}
@@ -429,7 +409,12 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
               <h2 className={styles.sectionTitle}>Completed Courses ({courses.filter(c => c.resultsGenerated).length})</h2>
               <div className={styles.coursesGrid}>
                 {courses.filter(c => c.resultsGenerated).map((course) => (
-                  <div key={course._id} className={styles.courseCard} style={{ opacity: 0.9, backgroundColor: '#f9fafb' }}>
+                  <div
+                    key={course._id}
+                    className={styles.courseCard}
+                    style={{ opacity: 0.9, backgroundColor: '#f9fafb', cursor: 'pointer' }}
+                    onClick={() => router.push(`/admin/courses/${course._id}/details`)}
+                  >
                     <div className={styles.courseCardContent}>
                       <h3 className={styles.courseTitle}>{course.title}</h3>
                       <p className={styles.courseCode}>Code: {course.code}</p>
@@ -439,7 +424,7 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
                       )}
                     </div>
 
-                    <div style={{ width: '100%', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                    <div style={{ width: '100%', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }} onClick={(e) => e.stopPropagation()}>
                       <button
                         disabled
                         className={styles.generateButton}

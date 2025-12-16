@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStudentCourseDetails, startSubmission, submitAssignment, getStudentEnrollments, completeEnrollment, getCurrentUser, getAssignmentReview } from '@/lib/api';
 import { useToast } from '@/components/common/ToastProvider';
-import { Menu, X, ChevronLeft, ChevronRight, PlayCircle, FileText, BookOpen } from 'lucide-react';
+import { Menu, X, ChevronLeft, ChevronRight, PlayCircle, FileText, BookOpen, Check } from 'lucide-react';
 import YouTube from 'react-youtube';
 import styles from '@/styles/courseplayer.module.scss';
 
@@ -95,28 +95,28 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
 
 
     useEffect(() => {
-  const loadReviewData = async () => {
-    const module = getCurrentModule();
+        const loadReviewData = async () => {
+            const module = getCurrentModule();
 
-    if (
-      isReviewMode &&
-      module?.assignment?._id
-    ) {
-      try {
-        const res = await getAssignmentReview(module.assignment._id);
-        if (res.success) {
-          setReviewData(res.data);
-        }
-      } catch (err) {
-        console.error('Failed to load review data', err);
-      }
-    } else {
-      setReviewData(null);
-    }
-  };
+            if (
+                isReviewMode &&
+                module?.assignment?._id
+            ) {
+                try {
+                    const res = await getAssignmentReview(module.assignment._id);
+                    if (res.success) {
+                        setReviewData(res.data);
+                    }
+                } catch (err) {
+                    console.error('Failed to load review data', err);
+                }
+            } else {
+                setReviewData(null);
+            }
+        };
 
-  loadReviewData();
-}, [currentLessonIndex, currentModuleIndex, isReviewMode]);
+        loadReviewData();
+    }, [currentLessonIndex, currentModuleIndex, isReviewMode]);
 
     useEffect(() => {
         const checkMobile = () => {
@@ -149,30 +149,30 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
             console.error('Failed to fetch user:', error);
         }
     };
-const fetchEnrollmentId = async () => {
-    try {
-        const enrollments = await getStudentEnrollments();
-        if (enrollments.success && enrollments.data) {
-            const enrollment = enrollments.data.find(
-                (e: any) => e.course?._id === courseId
-            );
+    const fetchEnrollmentId = async () => {
+        try {
+            const enrollments = await getStudentEnrollments();
+            if (enrollments.success && enrollments.data) {
+                const enrollment = enrollments.data.find(
+                    (e: any) => e.course?._id === courseId
+                );
 
-            if (enrollment) {
-                setEnrollmentId(enrollment._id);
+                if (enrollment) {
+                    setEnrollmentId(enrollment._id);
 
-                if (enrollment.status === 'completed') {
-    setIsCourseCompleted(true);
-    setIsReviewMode(true);
-    setShowConfirmDialog(false);
-    setCourseStarted(true);
-}
+                    if (enrollment.status === 'completed') {
+                        setIsCourseCompleted(true);
+                        setIsReviewMode(true);
+                        setShowConfirmDialog(false);
+                        setCourseStarted(true);
+                    }
 
+                }
             }
+        } catch (error) {
+            console.error('Error fetching enrollment:', error);
         }
-    } catch (error) {
-        console.error('Error fetching enrollment:', error);
-    }
-};
+    };
 
 
     const fetchCourseContent = async () => {
@@ -209,9 +209,18 @@ const fetchEnrollmentId = async () => {
         }
     };
 
+    const [maxReached, setMaxReached] = useState({ l: 0, m: 0 });
+
+    useEffect(() => {
+        if (isReviewMode || isCourseCompleted) {
+            setMaxReached({ l: lessons.length, m: 999 });
+        }
+    }, [isReviewMode, isCourseCompleted, lessons]);
+
     const handleConfirmStart = () => {
         setShowConfirmDialog(false);
         setCourseStarted(true);
+        setMaxReached({ l: 0, m: 0 });
     };
 
     const handleCancelStart = () => {
@@ -227,9 +236,7 @@ const fetchEnrollmentId = async () => {
     };
 
     const handleStartAssignment = async () => {
-    if (isReviewMode) return; // 🔒 block restart
-
-
+        if (isReviewMode) return;
 
         const module = getCurrentModule();
         if (!module?.assignment?._id) return;
@@ -292,16 +299,27 @@ const fetchEnrollmentId = async () => {
 
     const moveToNext = () => {
         const currentLesson = lessons[currentLessonIndex];
+        let nextL = currentLessonIndex;
+        let nextM = currentModuleIndex;
 
         if (currentModuleIndex < currentLesson.modules.length - 1) {
-            setCurrentModuleIndex(currentModuleIndex + 1);
+            nextM = currentModuleIndex + 1;
         } else {
             if (currentLessonIndex < lessons.length - 1) {
-                setCurrentLessonIndex(currentLessonIndex + 1);
-                setCurrentModuleIndex(0);
+                nextL = currentLessonIndex + 1;
+                nextM = 0;
             } else {
                 handleCourseComplete();
+                return;
             }
+        }
+
+        setCurrentLessonIndex(nextL);
+        setCurrentModuleIndex(nextM);
+
+        // Update max reached if we moved forward
+        if (nextL > maxReached.l || (nextL === maxReached.l && nextM > maxReached.m)) {
+            setMaxReached({ l: nextL, m: nextM });
         }
     };
 
@@ -340,100 +358,6 @@ const fetchEnrollmentId = async () => {
     const handleExitAssignment = () => {
         setAssignmentMode(false);
     };
-
-    if (loading) {
-        return (
-            <div className={styles.loadingContainer}>
-                <div className={styles.spinner}></div>
-                <p className={styles.loadingText}>Loading course...</p>
-            </div>
-        );
-    }
-
-if (showConfirmDialog && !isCourseCompleted) {
-        return (
-            <div className={styles.confirmDialog}>
-                <div className={styles.confirmCard}>
-                    <h2 className={styles.confirmTitle}>Start Course</h2>
-                    <p className={styles.confirmText}>
-                        You are about to start this course. Once started, you must complete all modules and assignments in sequence.
-                        You cannot skip ahead or go back to previous modules.
-                    </p>
-                    <div className={styles.confirmButtons}>
-                        <button onClick={handleCancelStart} className={styles.cancelButton}>
-                            Cancel
-                        </button>
-                        <button onClick={handleConfirmStart} className={styles.startButton}>
-                            Start Course
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (assignmentMode && getCurrentModule()?.assignment) {
-        const module = getCurrentModule()!;
-        const assignment = module.assignment!;
-
-        return (
-            <div className={styles.assignmentFullscreen}>
-                <div className={styles.assignmentContainer}>
-                    <div className={styles.assignmentHeader}>
-                        <h1 className={styles.assignmentTitle}>Assignment: {module.title}</h1>
-                        <button onClick={handleExitAssignment} className={styles.exitButton}>
-                            Exit Assignment
-                        </button>
-                    </div>
-
-                    <div className={styles.questionsContainer}>
-                        {assignment.questions.map((q, idx) => (
-                            <div key={q._id} className={styles.questionCard}>
-                                <div className={styles.questionHeader}>
-                                    <h3 className={styles.questionNumber}>Question {idx + 1}</h3>
-                                    <span className={styles.questionMarks}>{q.maxMarks} marks</span>
-                                </div>
-                                <p className={styles.questionText}>{q.questionText}</p>
-
-                                {q.qType === 'mcq' && q.options && (
-                                    <div className={styles.optionsContainer}>
-                                        {q.options.map((opt, optIdx) => (
-                                            <label key={optIdx} className={styles.optionLabel}>
-                                                <input
-                                                    type="radio"
-                                                    name={`q_${q._id}`}
-                                                    className={styles.optionRadio}
-                                                    onChange={() => handleAnswerChange(q._id, optIdx)}
-                                                    checked={answers[q._id] === optIdx}
-                                                />
-                                                <span>{opt}</span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {(q.qType === 'short' || q.qType === 'code') && (
-                                    <textarea
-                                        className={styles.answerTextarea}
-                                        rows={6}
-                                        placeholder="Type your answer here..."
-                                        onChange={(e) => handleAnswerChange(q._id, e.target.value)}
-                                        value={answers[q._id] || ''}
-                                    />
-                                )}
-                            </div>
-                        ))}
-
-                        <div className={styles.submitContainer}>
-                            <button onClick={handleSubmitAssignment} className={styles.submitButton}>
-                                Submit Assignment
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
 
     const currentModule = getCurrentModule();
     const currentLesson = lessons[currentLessonIndex];
@@ -477,65 +401,61 @@ if (showConfirmDialog && !isCourseCompleted) {
                     </div>
 
                     <h2 className={styles.courseTitle}>Course Content</h2>
-                    <div className={styles.progressSection}>
-                        <div className={styles.progressBar}>
-                            <div
-                                className={styles.progressFill}
-                                style={{ width: `${Math.round(((currentLessonIndex * 100 + ((currentModuleIndex + 1) / (lessons[currentLessonIndex]?.modules.length || 1)) * 100) / lessons.length))}%` }}
-                            ></div>
-                        </div>
-                        <span className={styles.progressText}>
-                            {Math.round(((currentLessonIndex * 100 + ((currentModuleIndex + 1) / (lessons[currentLessonIndex]?.modules.length || 1)) * 100) / lessons.length))}% Complete
-                        </span>
-                    </div>
                 </div>
 
-                <div className={styles.modulesList}>
+                <div className={styles.stepperContainer}>
                     {lessons.map((lesson, lIdx) => (
-                        <div key={lesson.lessonId || lIdx} className={styles.lessonGroup}>
-                            <div className={styles.lessonTitle}>
+                        <div key={lesson.lessonId || lIdx} className={styles.lessonStepperGroup}>
+                            <div className={styles.lessonHeader}>
                                 {lesson.title}
-                                <span className={styles.lessonDuration}>Lesson {lIdx + 1}</span>
                             </div>
 
                             {lesson.modules.map((module, mIdx) => {
                                 const isActive = currentLessonIndex === lIdx && currentModuleIndex === mIdx;
                                 const isCompleted = moduleCompleted.has(module._id);
 
+                                // Check if this step is "future"
+                                const isLocked = !isReviewMode && !isCourseCompleted && (
+                                    lIdx > maxReached.l ||
+                                    (lIdx === maxReached.l && mIdx > maxReached.m)
+                                );
+
                                 return (
                                     <div
                                         key={module._id}
-                                        className={`${styles.moduleItem} ${isActive ? styles.activeModule : ''}`}
+                                        className={`${styles.stepperItem} ${isLocked ? styles.locked : ''}`}
                                         onClick={() => {
+                                            if (isLocked) return;
                                             setCurrentLessonIndex(lIdx);
                                             setCurrentModuleIndex(mIdx);
                                             setAssignmentMode(false);
                                             if (isMobile) setIsSidebarOpen(false);
                                         }}
+                                        style={{ cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.5 : 1 }}
                                     >
-                                        <div className={styles.moduleIcon}>
-                                            {module.assignment ? '📝' : module.videoUrl ? '▶️' : '📄'}
+                                        <div className={`${styles.stepperLine} ${isCompleted ? styles.completed : ''}`}></div>
+                                        <div className={`${styles.stepperNode} ${isActive ? styles.active : ''} ${isCompleted ? styles.completed : ''}`}>
+                                            {isCompleted && <Check size={10} color="white" strokeWidth={4} />}
                                         </div>
-                                        <div className={styles.moduleInfo}>
-                                            <span className={styles.moduleTitleText}>{module.title}</span>
-                                            <span className={styles.moduleType}>
+
+                                        <div className={styles.stepperContent}>
+                                            <div className={`${styles.stepperTitle} ${isActive ? styles.active : ''}`}>
+                                                {module.title}
+                                            </div>
+                                            <div className={styles.stepperType}>
                                                 {module.assignment ? 'Assignment' : module.videoUrl ? 'Video' : 'Reading'}
-                                            </span>
+                                            </div>
                                         </div>
-                                        {isCompleted && <span className={styles.checkMark}>✓</span>}
                                     </div>
                                 );
                             })}
                         </div>
                     ))}
                 </div>
-
-                {/* Sidebar footer removed as per request */}
             </div>
 
             {/* Main Content */}
             <div className={styles.mainContentArea}>
-                {/* Top Bar / Header of Content Area */}
                 <div className={styles.contentHeader}>
                     <div className={styles.headerLeft}>
                         <button onClick={toggleSidebar} className={styles.toggleButton} title={isSidebarOpen ? "Close Sidebar" : "Open Sidebar"}>
@@ -545,7 +465,6 @@ if (showConfirmDialog && !isCourseCompleted) {
                             {currentModule ? currentModule.title : 'Course Completed'}
                         </h1>
                     </div>
-                    {/* Add any other header controls here like prev/next if needed in header */}
                 </div>
 
                 <div className={styles.contentScrollable}>
@@ -646,61 +565,50 @@ if (showConfirmDialog && !isCourseCompleted) {
                                                     {currentModule.assignment.questions.length} question(s) • {currentModule.assignment.maxScore || 'N/A'} total marks
                                                 </p>
                                             </div>
-  {/* LEARNING MODE ONLY */}
-{!isReviewMode &&
- currentModule.assignment &&
- !moduleCompleted.has(currentModule._id) && (
-    <button
-        onClick={handleStartAssignment}
-        className={styles.startAssignmentButton}
-    >
-        Start Assignment
-    </button>
-)}
-{isReviewMode && (
-    <span className={styles.reviewBadge}>
-        Review Mode
-    </span>
-)}
-
-
-
-
+                                            {!isReviewMode &&
+                                                currentModule.assignment &&
+                                                !moduleCompleted.has(currentModule._id) && (
+                                                    <button
+                                                        onClick={handleStartAssignment}
+                                                        className={styles.startAssignmentButton}
+                                                    >
+                                                        Start Assignment
+                                                    </button>
+                                                )}
+                                            {isReviewMode && (
+                                                <span className={styles.reviewBadge}>
+                                                    Review Mode
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
                                 )}
-                                {/* REVIEW MODE */}
-{isReviewMode && currentModule.assignment && reviewData && (
-    <div className={styles.reviewSection}>
-        <h2>Assignment Review</h2>
 
-        {reviewData.answers.map((ans: any, idx: number) => (
-            <div key={ans.questionId} className={styles.reviewCard}>
-                <h3>Question {idx + 1}</h3>
-
-                <p><strong>Your Answer:</strong></p>
-                <div className={styles.studentAnswer}>
-                    {ans.studentAnswer ?? 'Not answered'}
-                </div>
-
-                <p><strong>Correct Answer:</strong></p>
-                <div className={styles.correctAnswer}>
-                    {ans.correctAnswer}
-                </div>
-
-                <p className={styles.marks}>
-                    Marks: {ans.marksAwarded} / {ans.maxMarks}
-                </p>
-            </div>
-        ))}
-
-        <div className={styles.scoreSummary}>
-            <strong>Total Score:</strong> {reviewData.totalScore} <br />
-            <strong>Grade:</strong> {reviewData.grade}
-        </div>
-    </div>
-)}
-
+                                {isReviewMode && currentModule.assignment && reviewData && (
+                                    <div className={styles.reviewSection}>
+                                        <h2>Assignment Review</h2>
+                                        {reviewData.answers.map((ans: any, idx: number) => (
+                                            <div key={ans.questionId} className={styles.reviewCard}>
+                                                <h3>Question {idx + 1}</h3>
+                                                <p><strong>Your Answer:</strong></p>
+                                                <div className={styles.studentAnswer}>
+                                                    {ans.studentAnswer ?? 'Not answered'}
+                                                </div>
+                                                <p><strong>Correct Answer:</strong></p>
+                                                <div className={styles.correctAnswer}>
+                                                    {ans.correctAnswer}
+                                                </div>
+                                                <p className={styles.marks}>
+                                                    Marks: {ans.marksAwarded} / {ans.maxMarks}
+                                                </p>
+                                            </div>
+                                        ))}
+                                        <div className={styles.scoreSummary}>
+                                            <strong>Total Score:</strong> {reviewData.totalScore} <br />
+                                            <strong>Grade:</strong> {reviewData.grade}
+                                        </div>
+                                    </div>
+                                )}
 
                                 {currentModule.assignment && moduleCompleted.has(currentModule._id) && (
                                     <div className={styles.completedSection}>
