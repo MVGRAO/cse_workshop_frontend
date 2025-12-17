@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import PrivateRoute from '@/components/PrivateRoute';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { ListChecks, Trash2, Info, PlusCircle } from 'lucide-react';
 
 import {
   getCourseDetails,
@@ -700,37 +701,74 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
                 </div>
 
                 <div className={styles.assignmentSection}>
-                  <h3>Assignment</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
+                    <div style={{ background: '#fce7f3', padding: '0.5rem', borderRadius: '0.5rem' }}>
+                      <ListChecks size={24} color="#db2777" />
+                    </div>
+                    <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#831843' }}>Assignment Questions</h3>
+                  </div>
+
                   {currentModule.assignment.questions.map((q, idx) => (
                     <div key={idx} className={styles.questionCard}>
                       <div className={styles.questionHeader}>
-                        <h4>Question {idx + 1}</h4>
-                        <button onClick={() => removeQuestion(idx)} className={styles.removeButton}>Remove</button>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                          <span style={{
+                            background: '#fce7f3', color: '#be185d', fontWeight: 700,
+                            width: '2rem', height: '2rem', borderRadius: '50%',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem'
+                          }}>
+                            {idx + 1}
+                          </span>
+                          <span style={{ fontWeight: 600, color: '#374151' }}>Question</span>
+                        </div>
+                        <button onClick={() => removeQuestion(idx)} className={styles.removeButton} title="Remove Question">
+                          <Trash2 size={16} />
+                        </button>
                       </div>
-                      <select
-                        value={q.qType}
-                        onChange={e => handleQuestionChange(idx, 'qType', e.target.value)}
-                        className={styles.selectInput}
-                      >
-                        <option value="mcq">MCQ</option>
-                        <option value="short">Short Answer</option>
-                        <option value="code">Code</option>
-                      </select>
-                      <textarea
-                        value={q.questionText}
-                        onChange={e => handleQuestionChange(idx, 'questionText', e.target.value)}
-                        placeholder="Question"
-                        className={styles.textarea}
-                      />
+
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#4b5563' }}>
+                          Question Type
+                        </label>
+                        <select
+                          value={q.qType}
+                          onChange={e => handleQuestionChange(idx, 'qType', e.target.value)}
+                          className={styles.selectInput}
+                          style={{ width: '100%' }}
+                        >
+                          <option value="mcq">Multiple Choice (MCQ)</option>
+                          <option value="short">Short Answer</option>
+                          <option value="code">Code Snippet</option>
+                        </select>
+                      </div>
+
+                      <div style={{ marginBottom: '1rem' }}>
+                        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#4b5563' }}>
+                          Question Text
+                        </label>
+                        <textarea
+                          value={q.questionText}
+                          onChange={e => handleQuestionChange(idx, 'questionText', e.target.value)}
+                          placeholder="Type your question here..."
+                          className={styles.textarea}
+                          rows={3}
+                          style={{ resize: 'vertical' }}
+                        />
+                      </div>
 
                       {q.qType === 'mcq' && (
                         <div className={styles.optionsContainer}>
+                          <label style={{ fontSize: '0.85rem', fontWeight: 600, color: '#4b5563', marginBottom: '0.5rem', display: 'block' }}>
+                            Answer Options (Select the correct one)
+                          </label>
                           {q.options?.map((opt, optIdx) => (
                             <div key={optIdx} className={styles.optionRow}>
                               <input
                                 type="radio"
+                                name={`correct-opt-${idx}`}
                                 checked={q.correctOptionIndex === optIdx}
                                 onChange={() => handleQuestionChange(idx, 'correctOptionIndex', optIdx)}
+                                title="Mark as correct answer"
                               />
                               <input
                                 type="text"
@@ -742,29 +780,40 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
                           ))}
                         </div>
                       )}
+
                       <div className={styles.answerSection}>
-                        <label>
-                          {q.qType === 'mcq' ? 'Answer Explanation:' : 'Correct Answer Text:'}
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', fontWeight: 600, color: '#0369a1', marginBottom: '0.5rem' }}>
+                          <Info size={16} />
+                          {q.qType === 'mcq' ? 'Explanation (Optional)' : 'Sample Answer / Key'}
                         </label>
                         <textarea
                           value={q.answerText}
                           onChange={e => handleQuestionChange(idx, 'answerText', e.target.value)}
-                          placeholder={q.qType === 'mcq' ? "Explanation" : "Correct answer..."}
+                          placeholder={q.qType === 'mcq' ? "Explain why the answer is correct..." : "Provide the expected answer for grading reference..."}
                           className={styles.textarea}
                           rows={2}
+                          style={{ background: 'white' }}
                         />
                       </div>
+
                       <div className={styles.marksSection}>
-                        <label>Marks: </label>
+                        <label>Points/Marks:</label>
                         <input
                           type="number"
                           value={q.maxMarks}
                           onChange={e => handleQuestionChange(idx, 'maxMarks', e.target.value)}
+                          min="1"
                         />
                       </div>
                     </div>
                   ))}
-                  <button onClick={addQuestion} className={styles.addQuestionButton}>+ Add Question</button>
+
+                  <button onClick={addQuestion} className={styles.addQuestionButton}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                      <PlusCircle size={20} />
+                      <span>Add New Question</span>
+                    </div>
+                  </button>
                 </div>
 
                 <div className={styles.formActions}>

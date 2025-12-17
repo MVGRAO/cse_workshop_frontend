@@ -7,6 +7,9 @@ import { useToast } from '@/components/common/ToastProvider';
 import { Menu, X, ChevronLeft, ChevronRight, PlayCircle, FileText, BookOpen, Check } from 'lucide-react';
 import YouTube from 'react-youtube';
 import styles from '@/styles/courseplayer.module.scss';
+import markdownStyles from '@/styles/markdown.module.scss';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const getVideoId = (url: string) => {
     try {
@@ -81,8 +84,8 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
     const [showConfirmDialog, setShowConfirmDialog] = useState(true);
     const [currentLessonIndex, setCurrentLessonIndex] = useState(0);
     const [currentModuleIndex, setCurrentModuleIndex] = useState(0);
-    const [activeTab, setActiveTab] = useState<'content' | 'assignment'>('content'); // New state for sub-navigation
-    const [assignmentMode, setAssignmentMode] = useState(false); // Keeps track if "Start Assignment" was clicked (Questions visible)
+    const [activeTab, setActiveTab] = useState<'content' | 'assignment'>('content');
+    const [assignmentMode, setAssignmentMode] = useState(false);
     const [submissionId, setSubmissionId] = useState<string | null>(null);
     const [answers, setAnswers] = useState<{ [key: string]: any }>({});
     const [moduleCompleted, setModuleCompleted] = useState<Set<string>>(new Set());
@@ -93,7 +96,7 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
     const [isCourseCompleted, setIsCourseCompleted] = useState(false);
     const [isReviewMode, setIsReviewMode] = useState(false);
     const [reviewData, setReviewData] = useState<any>(null);
-
+    const [shuffledQuestions, setShuffledQuestions] = useState<Question[]>([]);
 
     useEffect(() => {
         const loadReviewData = async () => {
@@ -140,12 +143,6 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
         return () => window.removeEventListener('resize', checkMobile);
     }, []);
 
-    // Reset to content tab when module changes
-    useEffect(() => {
-        // If independent navigation happens, we might want to default to content
-        // But we handle explicit setting in sidebar click
-    }, [currentLessonIndex, currentModuleIndex]);
-
     const fetchUserData = async () => {
         try {
             const userData = await getCurrentUser();
@@ -156,6 +153,7 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
             console.error('Failed to fetch user:', error);
         }
     };
+
     const fetchEnrollmentId = async () => {
         try {
             const enrollments = await getStudentEnrollments();
@@ -173,7 +171,6 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                         setShowConfirmDialog(false);
                         setCourseStarted(true);
                     }
-
                 }
             }
         } catch (error) {
@@ -181,14 +178,12 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
         }
     };
 
-
     const fetchCourseContent = async () => {
         try {
             setLoading(true);
             const response = await getStudentCourseDetails(courseId);
 
             if (response.success && response.data) {
-                // Handle new response structure { course, lessons, isEnrolled, enrollmentId }
                 const lessonsData = response.data.lessons || (Array.isArray(response.data) ? response.data : []);
 
                 if (response.data.enrollmentId) {
@@ -258,6 +253,15 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
             const response = await startSubmission(module.assignment._id);
             if (response.success && response.data?._id) {
                 setSubmissionId(response.data._id);
+
+                // Shuffle questions
+                const questions = [...(module.assignment.questions || [])];
+                for (let i = questions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [questions[i], questions[j]] = [questions[j], questions[i]];
+                }
+                setShuffledQuestions(questions);
+
                 setAssignmentMode(true);
             }
         } catch (error: any) {
@@ -301,8 +305,6 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
             setAnswers({});
             setSubmissionId(null);
 
-            // After submission, stay on assignment tab or move next?
-            // Usually move next is good behavior
             moveToNext();
         } catch (error: any) {
             toast({
@@ -317,14 +319,12 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
         const currentLesson = lessons[currentLessonIndex];
         const currentModule = currentLesson.modules[currentModuleIndex];
 
-        // If currently on content tab and module has assignment, go to assignment tab
         const hasAssignment = !!currentModule.assignment;
         if (activeTab === 'content' && hasAssignment) {
             setActiveTab('assignment');
             return;
         }
 
-        // Otherwise move to next module
         let nextL = currentLessonIndex;
         let nextM = currentModuleIndex;
 
@@ -342,19 +342,15 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
 
         setCurrentLessonIndex(nextL);
         setCurrentModuleIndex(nextM);
-        setActiveTab('content'); // Default to content for new module
+        setActiveTab('content');
         setAssignmentMode(false);
 
-        // Update max reached if we moved forward
         if (nextL > maxReached.l || (nextL === maxReached.l && nextM > maxReached.m)) {
             setMaxReached({ l: nextL, m: nextM });
         }
     };
 
     const moveToPrevious = () => {
-        // If on assignment tab, go back to content tab (if video exists)
-        // If content tab, go to previous module's assignment (if exists) or content
-
         const currentModule = getCurrentModule();
         const hasVideo = !!currentModule?.videoUrl || !!currentModule?.textContent;
 
@@ -363,12 +359,9 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
             return;
         }
 
-        // Go to previous module
         if (currentModuleIndex > 0) {
             const prevModule = lessons[currentLessonIndex].modules[currentModuleIndex - 1];
             setCurrentModuleIndex(currentModuleIndex - 1);
-            // If prev module has assignment, default to assignment tab? 
-            // Usually "Previous" implies going back to the end of the previous item.
             if (prevModule.assignment) {
                 setActiveTab('assignment');
             } else {
@@ -426,6 +419,8 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
         setAssignmentMode(false);
     };
 
+    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
+
     if (loading) {
         return (
             <div className={styles.loadingContainer}>
@@ -436,13 +431,9 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
     }
 
     const currentModule = getCurrentModule();
-    const currentLesson = lessons[currentLessonIndex];
-
-    const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
     return (
         <div className={styles.layoutContainer}>
-            {/* Mobile Overlay */}
             {isMobile && isSidebarOpen && (
                 <div
                     className={styles.mobileOverlay}
@@ -450,7 +441,6 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                 />
             )}
 
-            {/* Sidebar */}
             <div className={`${styles.sidebar} ${!isSidebarOpen ? styles.sidebarCollapsed : ''} ${isMobile && isSidebarOpen ? styles.sidebarMobileOpen : ''}`}>
                 <div className={styles.sidebarHeader}>
                     <div className={styles.sidebarTopRow}>
@@ -487,13 +477,10 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                             </div>
 
                             {lesson.modules.map((module, mIdx) => {
-                                // Determine if we need to split this module into Content + Assignment
                                 const hasVideo = !!module.videoUrl || !!module.textContent;
                                 const hasAssignment = !!module.assignment;
-
                                 const isCompleted = moduleCompleted.has(module._id);
 
-                                // Check if this step is "future"
                                 const isLocked = !isReviewMode && !isCourseCompleted && (
                                     lIdx > maxReached.l ||
                                     (lIdx === maxReached.l && mIdx > maxReached.m)
@@ -504,7 +491,6 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
 
                                 const renderItems = [];
 
-                                // Item 1: Content (Video/Text)
                                 if (hasVideo || !hasAssignment) {
                                     renderItems.push(
                                         <div
@@ -537,7 +523,6 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                                     );
                                 }
 
-                                // Item 2: Assignment
                                 if (hasAssignment) {
                                     renderItems.push(
                                         <div
@@ -548,8 +533,6 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                                                 setCurrentLessonIndex(lIdx);
                                                 setCurrentModuleIndex(mIdx);
                                                 setActiveTab('assignment');
-                                                // Should we auto-start? Maybe not, forcing user to click "Start" is fine
-                                                // setAssignmentMode(false); 
                                                 if (isMobile) setIsSidebarOpen(false);
                                             }}
                                             style={{ cursor: isLocked ? 'not-allowed' : 'pointer', opacity: isLocked ? 0.5 : 1 }}
@@ -578,7 +561,6 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                 </div>
             </div>
 
-            {/* Main Content */}
             <div className={styles.mainContentArea}>
                 <div className={styles.contentHeader}>
                     <div className={styles.headerLeft}>
@@ -594,11 +576,8 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                 </div>
 
                 <div className={styles.contentScrollable}>
-                    {/* Render Content Logic based on activeTab */}
-
                     {currentModule ? (
                         <>
-                            {/* VIDEO / TEXT VIEW */}
                             {activeTab === 'content' && (
                                 <div className={styles.moduleCard}>
                                     {currentModule.videoUrl && (
@@ -628,12 +607,13 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
 
                                     <div className={styles.moduleContent}>
                                         {currentModule.description && (
-                                            <div className={styles.moduleDescription}>
-                                                {currentModule.description}
+                                            <div className={`${styles.moduleDescription} ${markdownStyles.markdownContent}`}>
+                                                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                                    {currentModule.description}
+                                                </ReactMarkdown>
                                             </div>
                                         )}
 
-                                        {/* Navigation Footer for Content View */}
                                         <div className={styles.navigationButtons}>
                                             <button
                                                 onClick={moveToPrevious}
@@ -651,11 +631,9 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                                 </div>
                             )}
 
-                            {/* ASSIGNMENT VIEW */}
                             {activeTab === 'assignment' && (
                                 <>
                                     {assignmentMode ? (
-                                        // DOING QUIZ
                                         <div className={styles.assignmentContainer}>
                                             <div className={styles.assignmentHeader}>
                                                 <h2 className={styles.assignmentTitle}>Questions</h2>
@@ -665,7 +643,7 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                                             </div>
 
                                             <div className={styles.questionsContainer}>
-                                                {currentModule.assignment?.questions.map((q, idx) => (
+                                                {shuffledQuestions.map((q, idx) => (
                                                     <div key={q._id} className={styles.questionCard}>
                                                         <div className={styles.questionHeader}>
                                                             <h3 className={styles.questionNumber}>Question {idx + 1}</h3>
@@ -710,7 +688,6 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                                             </div>
                                         </div>
                                     ) : (
-                                        // START SCREEN / DONE SCREEN
                                         <div className={styles.moduleCard}>
                                             <div className={styles.moduleContent}>
                                                 {currentModule.assignment && currentModule.assignment.questions && currentModule.assignment.questions.length > 0 && !moduleCompleted.has(currentModule._id) && (
@@ -780,7 +757,6 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                                                     </div>
                                                 )}
 
-                                                {/* Navigation Footer for Assignment Standalone View */}
                                                 <div className={styles.navigationButtons} style={{ marginTop: '3rem' }}>
                                                     <button
                                                         onClick={moveToPrevious}
@@ -789,8 +765,9 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                                                         Previous
                                                     </button>
 
-                                                    {(moduleCompleted.has(currentModule._id) || !currentModule.assignment || currentModule.assignment.questions.length === 0) ? (
-                                                        currentLessonIndex === lessons.length - 1 && currentModuleIndex === currentLesson.modules.length - 1 ? (
+                                                    {(moduleCompleted.has(currentModule._id) || !currentModule.assignment || (currentModule.assignment?.questions?.length ?? 0) === 0
+                                                    ) ? (
+                                                        currentLessonIndex === lessons.length - 1 && currentModuleIndex === (lessons[lessons.length - 1]?.modules?.length ?? 1) - 1 ? (
                                                             <button onClick={moveToNext} className={styles.completeButton}>
                                                                 Complete Course ✓
                                                             </button>
@@ -800,8 +777,8 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                                                             </button>
                                                         )
                                                     ) : (
-                                                        <button disabled className={styles.navButton} style={{ opacity: 0.5, cursor: 'not-allowed' }}>
-                                                            Complete Assignment to Proceed
+                                                        <button disabled className={styles.disabledButton}>
+                                                            Complete Assignment to Continue
                                                         </button>
                                                     )}
                                                 </div>
@@ -811,14 +788,6 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                                 </>
                             )}
                         </>
-                    ) : lessons.length === 0 ? (
-                        <div className={styles.noContent}>
-                            <h2>No Lessons Available</h2>
-                            <p>This course content is not available yet.</p>
-                            <button onClick={() => router.push('/candidate/my-courses')} className={styles.finishButton}>
-                                Return to Dashboard
-                            </button>
-                        </div>
                     ) : (
                         <div className={styles.noContent}>
                             <h2>🎉 Course Completed!</h2>
@@ -831,7 +800,6 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
                 </div>
             </div>
 
-            {/* Start Course Confirmation Dialog */}
             {showConfirmDialog && !loading && !isCourseCompleted && (
                 <div className={styles.confirmDialog}>
                     <div className={styles.confirmCard}>

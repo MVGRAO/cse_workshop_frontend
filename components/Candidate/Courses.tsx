@@ -7,6 +7,8 @@ import { getAuthToken, getStudentEnrollments } from '@/lib/api';
 import styles from '@/styles/courses.module.scss';
 import { useCandidateProfile } from '@/context/CandidateProfileContext';
 
+import { Loader2 } from 'lucide-react';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
 
 interface Course {
@@ -82,9 +84,9 @@ export default function Courses() {
           </div>
 
           {loading ? (
-            <div className={styles.loadingState}>
-              <div className={styles.spinner}></div>
-              <p>Loading courses...</p>
+            <div className="flex flex-col items-center justify-center min-h-[50vh]">
+              <Loader2 size={48} className="animate-spin text-blue-600 mb-4" />
+              <p className="text-gray-500 font-medium">Loading courses...</p>
             </div>
           ) : courses.length === 0 ? (
             <div className={styles.emptyState}>
@@ -111,9 +113,9 @@ export default function Courses() {
                   {/* Card Content */}
                   <div className={styles.cardContent}>
                     <h3 className={styles.courseTitle}>{course.title}</h3>
-                    <p className={styles.courseDescription}>
-                      {course.description || 'No description available'}
-                    </p>
+                    <div className={styles.courseDescription}>
+                      {course.description ? (course.description.length > 100 ? course.description.substring(0, 100) + '...' : course.description) : 'No description available'}
+                    </div>
                   </div>
                 </div>
               ))}

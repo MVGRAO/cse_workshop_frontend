@@ -19,7 +19,8 @@ import {
   authenticatedFetch,
   removeAuthToken,
   generateCourseResults,
-  getUsers
+  getUsers,
+  stopCourse
 } from '@/lib/api';
 import { useToast } from '@/components/common/ToastProvider';
 import PrivateRoute from '@/components/PrivateRoute';
@@ -186,6 +187,7 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showPublishConfirm, setShowPublishConfirm] = useState<string | null>(null);
+  const [showStopConfirm, setShowStopConfirm] = useState<string | null>(null);
   const [creatingCourse, setCreatingCourse] = useState(false);
 
   useEffect(() => {
@@ -224,6 +226,25 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
       toast({
         title: 'Error',
         description: error.message || 'Failed to publish course',
+        variant: 'error',
+      });
+    }
+  };
+
+  const handleStopCourse = async (courseId: string) => {
+    try {
+      await stopCourse(courseId);
+      toast({
+        title: 'Success',
+        description: 'Course stopped successfully',
+        variant: 'success',
+      });
+      fetchCourses();
+      setShowStopConfirm(null);
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to stop course',
         variant: 'error',
       });
     }
@@ -425,31 +446,78 @@ function AdminDashboardContent({ onLogout }: { onLogout: () => void }) {
                     </div>
 
                     <div style={{ width: '100%', marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '0.5rem' }} onClick={(e) => e.stopPropagation()}>
-                      <button
-                        disabled
-                        className={styles.generateButton}
-                        style={{ backgroundColor: '#10b981', opacity: 0.8, cursor: 'not-allowed' }}
+                      {/* Results Generated Badge/Button */}
+                      <div
+                        style={{
+                          backgroundColor: '#10b981',
+                          color: 'white',
+                          padding: '0.5rem',
+                          borderRadius: '0.375rem',
+                          textAlign: 'center',
+                          fontSize: '0.875rem',
+                          fontWeight: 500
+                        }}
                       >
                         Results Generated
-                      </button>
+                      </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.5rem' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                         <Link
                           href={`/admin/courses/${course._id}/results`}
                           className={styles.linkButton}
-                          style={{ textAlign: 'center' }}
+                          style={{
+                            textAlign: 'center',
+                            backgroundColor: '#3b82f6',
+                            color: 'white',
+                            textDecoration: 'none',
+                            padding: '0.5rem',
+                            borderRadius: '0.375rem',
+                            fontSize: '0.875rem',
+                            display: 'block'
+                          }}
                         >
                           Review Results
                         </Link>
-                        <button
-                          disabled
-                          className={styles.deleteButton} // Using existing style for now
-                          style={{ width: '100%', opacity: 0.6, cursor: 'not-allowed', backgroundColor: '#dc2626' }}
-                        >
-                          Stop Course
-                        </button>
+
+                        {course.isStopped ? (
+                          <button
+                            disabled
+                            className={styles.deleteButton}
+                            style={{ backgroundColor: '#6b7280', opacity: 0.8, cursor: 'not-allowed', width: '100%' }}
+                          >
+                            Stopped
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => setShowStopConfirm(course._id)}
+                            className={styles.deleteButton}
+                            style={{ backgroundColor: '#dc2626', color: 'white', width: '100%' }}
+                          >
+                            Stop Course
+                          </button>
+                        )}
                       </div>
                     </div>
+
+                    {showStopConfirm === course._id && (
+                      <div className={styles.confirmDialog} onClick={(e) => e.stopPropagation()}>
+                        <p>Stop this course? This will prevent further activity. This cannot be undone.</p>
+                        <div className={styles.confirmActions}>
+                          <button
+                            onClick={() => handleStopCourse(course._id)}
+                            className={styles.confirmButton}
+                          >
+                            Yes, Stop
+                          </button>
+                          <button
+                            onClick={() => setShowStopConfirm(null)}
+                            className={styles.cancelButton}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

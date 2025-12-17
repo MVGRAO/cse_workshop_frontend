@@ -10,6 +10,7 @@ import PrivateRoute from '@/components/PrivateRoute';
 export default function StudentsList() {
     const [students, setStudents] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searchQuery, setSearchQuery] = useState('');
     const { toast } = useToast();
 
     useEffect(() => {
@@ -62,6 +63,11 @@ export default function StudentsList() {
         }
     };
 
+    const filteredStudents = students.filter(student =>
+        student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
     return (
         <PrivateRoute allowedRoles={['admin']}>
             <div className={styles.container}>
@@ -73,14 +79,31 @@ export default function StudentsList() {
                     <div style={{ width: 100 }}></div> {/* Spacer */}
                 </div>
 
+                <div style={{ marginBottom: '1.5rem' }}>
+                    <input
+                        type="text"
+                        placeholder="Filter by name or email..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={styles.searchInput}
+                        style={{
+                            padding: '0.75rem',
+                            borderRadius: '0.375rem',
+                            border: '1px solid #d1d5db',
+                            width: '100%',
+                            maxWidth: '400px'
+                        }}
+                    />
+                </div>
+
                 {loading ? (
                     <div className={styles.loadingState}>
                         <div className={styles.spinner}></div>
                         <p>Loading students...</p>
                     </div>
-                ) : students.length === 0 ? (
+                ) : filteredStudents.length === 0 ? (
                     <div className={styles.emptyState}>
-                        <p>No students found.</p>
+                        <p>No students found matching your search.</p>
                     </div>
                 ) : (
                     <div className={styles.tableContainer}>
@@ -96,7 +119,7 @@ export default function StudentsList() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {students.map((student) => (
+                                {filteredStudents.map((student) => (
                                     <tr key={student._id}>
                                         <td>
                                             <div className={styles.userInfo}>

@@ -5,7 +5,10 @@ import { useRouter } from 'next/navigation';
 import { getAuthToken, enrollInCourse } from '@/lib/api';
 import { useToast } from '@/components/common/ToastProvider';
 import styles from '@/styles/courseDetails.module.scss';
+import markdownStyles from '@/styles/markdown.module.scss';
 import { Loader2, PlayCircle, FileText, CheckCircle, Clock, BookOpen, User, ChevronLeft } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface CourseDetailsProps {
     courseId: string;
@@ -84,10 +87,6 @@ export default function CourseDetails({ courseId }: CourseDetailsProps) {
             const detailsRes = await fetch(`${API_BASE_URL}/student/courses/${courseId}/details`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-
-            // Check enrollment status separately or check if the details endpoint returns it (it doesn't currently, so assume we might need to check "available" or enrollment list)
-            // Ideally, we should check if the student is already enrolled.
-            // For now, let's fetch enrollments to check status.
 
             if (detailsRes.ok) {
                 const contentType = detailsRes.headers.get("content-type");
@@ -172,8 +171,9 @@ export default function CourseDetails({ courseId }: CourseDetailsProps) {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[50vh]">
-                <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
+            <div className="flex flex-col items-center justify-center min-h-[50vh]">
+                <Loader2 size={48} className="animate-spin text-blue-600 mb-4" />
+                <p className="text-gray-500 font-medium">Loading course details...</p>
             </div>
         );
     }
@@ -220,8 +220,10 @@ export default function CourseDetails({ courseId }: CourseDetailsProps) {
                     {/* About Section */}
                     <div className={styles.card}>
                         <h2 className={styles.sectionTitle}>What you'll learn</h2>
-                        <div className={styles.description}>
-                            {course.description}
+                        <div className={`${styles.description} ${markdownStyles.markdownContent}`}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                                {course.description}
+                            </ReactMarkdown>
                         </div>
                     </div>
 
@@ -248,7 +250,6 @@ export default function CourseDetails({ courseId }: CourseDetailsProps) {
                                     </div>
                                 </div>
                             ))}
-                            {/* Static Examples from Image if logic needed, otherwise mapping lessons is good */}
                         </div>
                     </div>
                 </div>
@@ -281,6 +282,12 @@ export default function CourseDetails({ courseId }: CourseDetailsProps) {
                                 <div className="p-1.5 bg-gray-100 rounded-md">
                                     <User size={20} className="w-5 h-5 text-gray-500" />
                                 </div>
+                                <span>{courseData.enrollmentCount || 0} Students Enrolled</span>
+                            </div>
+                            <div className={styles.metaItem}>
+                                <div className="p-1.5 bg-gray-100 rounded-md">
+                                    <User size={20} className="w-5 h-5 text-gray-500" />
+                                </div>
                                 <span>Instructor: {course.createdBy?.name || 'CSE Workshop'}</span>
                             </div>
                         </div>
@@ -290,9 +297,15 @@ export default function CourseDetails({ courseId }: CourseDetailsProps) {
                                 Already Enrolled
                             </button>
                         ) : (
-                            <button className={styles.enrollButton} onClick={openEnrollForm}>
-                                Enroll for Free
-                            </button>
+                            course.startTimestamp && new Date() > new Date(course.startTimestamp) ? (
+                                <button className={styles.enrollButton} disabled style={{ backgroundColor: '#9ca3af', cursor: 'not-allowed' }}>
+                                    Enrollment Ended
+                                </button>
+                            ) : (
+                                <button className={styles.enrollButton} onClick={openEnrollForm}>
+                                    Enroll for Free
+                                </button>
+                            )
                         )}
 
                     </div>

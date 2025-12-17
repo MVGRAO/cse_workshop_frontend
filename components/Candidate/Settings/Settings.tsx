@@ -3,9 +3,10 @@
 import React, { useEffect, ChangeEvent, useRef, useState } from 'react';
 import { BsTrash } from 'react-icons/bs';
 import { useToast } from '@/components/common/ToastProvider';
-import { getCurrentUser, updateProfile, deleteAccount, getAuthToken, removeAuthToken } from '@/lib/api';
+import { getCurrentUser, updateProfile, deleteAccount, getAuthToken, removeAuthToken, uploadAvatar } from '@/lib/api';
 import Button from '@/components/common/Button';
 import { useRouter } from 'next/navigation';
+import { useCandidateProfile } from '@/context/CandidateProfileContext';
 import styles from '@/styles/settings.module.scss';
 
 const Settings: React.FC = () => {
@@ -185,15 +186,30 @@ const Settings: React.FC = () => {
     }
   };
 
+  // Import uploadAvatar in the implementation block below
+  const { refreshProfile } = useCandidateProfile();
+
   const handleUpload = async (imgFile: any) => {
-    console.log('Uploading profile picture...');
-    // Note: Profile picture upload would need backend support
-    // For now, we'll show a message that it's not yet implemented
-    toast({
-      title: 'Feature Coming Soon',
-      description: 'Profile picture upload will be available soon.',
-      variant: 'info',
-    });
+    try {
+      console.log('Uploading profile picture...');
+      const response = await uploadAvatar(imgFile);
+
+      if (response.success) {
+        toast({
+          title: 'Success',
+          description: 'Profile picture updated!',
+          variant: 'success',
+        });
+        setProfileUrl(response.data.avatarUrl);
+        refreshProfile();
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to upload profile picture',
+        variant: 'error',
+      });
+    }
   };
 
   const handleDeleteAccount = async () => {

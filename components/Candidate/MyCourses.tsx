@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { getStudentEnrollments } from '@/lib/api';
 import styles from '@/styles/mycourses.module.scss';
+import { Clock } from 'lucide-react';
 
 interface Enrollment {
   _id: string;
@@ -14,6 +15,8 @@ interface Enrollment {
     description: string;
     status: string;
     resultsGenerated?: boolean;
+    startTimestamp?: string;
+    endTimestamp?: string;
   } | null;
   status: string;
   progress: number;
@@ -52,7 +55,12 @@ export default function MyCourses() {
   }, []);
 
   const ongoingCourses = enrollments.filter(e => e.status !== 'completed');
-  const completedCourses = enrollments.filter(e => e.status === 'completed');
+  const completedCourses = enrollments.map(e => {
+    if (e.status === 'completed') {
+      return { ...e, progress: 100 };
+    }
+    return e;
+  }).filter(e => e.status === 'completed');
 
   return (
     <PrivateRoute allowedRoles={['student']}>
@@ -168,18 +176,44 @@ export default function MyCourses() {
                           )}
                         </div>
                       ) : (
-                        <button disabled className={styles.completedButton}>
-                          Results Pending
-                        </button>
+                        <div className={styles.cardActions}>
+                          <button disabled className={styles.pendingButton} style={{
+                            width: '100%',
+                            padding: '0.75rem',
+                            backgroundColor: 'transparent',
+                            border: '1px solid #d97706',
+                            borderRadius: '0.5rem',
+                            color: '#d97706',
+                            fontWeight: 600,
+                            cursor: 'not-allowed',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '0.5rem'
+                          }}>
+                            <Clock size={18} />
+                            Results Pending
+                          </button>
+                        </div>
                       )
                     ) : enrollment.course?.status === 'published' ? (
                       enrollment.course?._id ? (
-                        <Link
-                          href={`/candidate/courses/${enrollment.course._id}`}
-                          className={styles.startButton}
-                        >
-                          Start Course →
-                        </Link>
+                        enrollment.course.endTimestamp && new Date() > new Date(enrollment.course.endTimestamp) ? (
+                          <button disabled className={styles.disabledButton}>
+                            Course Ended
+                          </button>
+                        ) : enrollment.course.startTimestamp && new Date() < new Date(enrollment.course.startTimestamp) ? (
+                          <button disabled className={styles.disabledButton}>
+                            Starts on {new Date(enrollment.course.startTimestamp).toLocaleDateString()}
+                          </button>
+                        ) : (
+                          <Link
+                            href={`/candidate/courses/${enrollment.course._id}`}
+                            className={styles.startButton}
+                          >
+                            Start Course →
+                          </Link>
+                        )
                       ) : (
                         <button disabled className={styles.disabledButton}>
                           Course removed
@@ -200,495 +234,3 @@ export default function MyCourses() {
     </PrivateRoute>
   );
 }
-
-
-// 'use client';
-
-// import PrivateRoute from '@/components/PrivateRoute';
-// import Link from 'next/link';
-// import { useEffect, useState } from 'react';
-// import { getStudentEnrollments } from '@/lib/api';
-
-// interface Enrollment {
-//   _id: string;
-//   course?: {
-//     _id: string;
-//     title: string;
-//     description: string;
-//     status: string;
-//     resultsGenerated?: boolean;
-//   } | null;
-//   status: string;
-//   progress: number;
-// }
-
-// export default function MyCourses() {
-//   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [tab, setTab] = useState<'ongoing' | 'completed'>('completed');
-
-//   useEffect(() => {
-//     const fetchData = async () => {
-//       const res = await getStudentEnrollments();
-//       if (res?.success) setEnrollments(res.data || []);
-//       setLoading(false);
-//     };
-//     fetchData();
-//   }, []);
-
-//   const list =
-//     tab === 'ongoing'
-//       ? enrollments.filter(e => e.status !== 'completed')
-//       : enrollments.filter(e => e.status === 'completed');
-
-//   return (
-//     <PrivateRoute allowedRoles={['student']}>
-//       <div className="page">
-//         <h1 className="title">My Courses</h1>
-
-//         <div className="tabs">
-//           <button
-//             className={tab === 'ongoing' ? 'active' : ''}
-//             onClick={() => setTab('ongoing')}
-//           >
-//             Ongoing
-//           </button>
-//           <button
-//             className={tab === 'completed' ? 'active' : ''}
-//             onClick={() => setTab('completed')}
-//           >
-//             Completed
-//           </button>
-//         </div>
-
-//         {loading ? (
-//           <p>Loading...</p>
-//         ) : (
-//           <div className="grid">
-//             {list.map(e => (
-//               <div key={e._id} className="card">
-//                 <div className="content">
-//                   <h3>{e.course?.title ?? 'Removed course'}</h3>
-
-//                   {e.course?.description && (
-//                     <p className="desc">{e.course.description}</p>
-//                   )}
-
-//                   <div className="progress">
-//                     <span>Progress {e.progress}%</span>
-//                     <div className="bar">
-//                       <div style={{ width: `${e.progress}%` }} />
-//                     </div>
-//                   </div>
-
-//                   <div className="badges">
-//                     <span className="badge green">{e.status}</span>
-//                     <span className="badge green">
-//                       {e.course?.status ?? 'draft'}
-//                     </span>
-//                   </div>
-//                 </div>
-
-//                 {/* ✅ ACTIONS – ALWAYS STACKED */}
-//                 <div className="actions">
-//                   {e.course?.resultsGenerated ? (
-//                     <Link
-//                       href={`/candidate/my-courses/results/${e._id}`}
-//                       className="btn red"
-//                     >
-//                       Review Results
-//                     </Link>
-//                   ) : (
-//                     <div className="btn pending">Results Pending</div>
-//                   )}
-
-//                   {e.course?._id && (
-//                     <Link
-//                       href={`/candidate/courses/${e.course._id}/view`}
-//                       className="btn green"
-//                     >
-//                       View Course
-//                     </Link>
-//                   )}
-//                 </div>
-//               </div>
-//             ))}
-//           </div>
-//         )}
-//       </div>
-
-//       {/* ✅ CSS – MATCHES YOUR IMAGE EXACTLY */}
-//       <style jsx>{`
-//         .page {
-//           padding: 1rem;
-//           width: 100%;
-//           overflow-x: hidden;
-//         }
-
-//         .title {
-//           font-size: 1.5rem;
-//           font-weight: 700;
-//           margin-bottom: 1rem;
-//         }
-
-//         .pending {
-//   background: linear-gradient(90deg, #f59e0b, #d97706); /* yellow-orange */
-//   color: #fff;
-//   cursor: not-allowed;
-//   opacity: 0.9;
-// }
-
-
-//         .tabs {
-//           display: flex;
-//           gap: 1.5rem;
-//           margin-bottom: 1rem;
-//         }
-
-//         .tabs button {
-//           background: none;
-//           border: none;
-//           font-weight: 600;
-//           cursor: pointer;
-//           padding-bottom: 0.5rem;
-//         }
-
-//         .tabs .active {
-//           color: #2563eb;
-//           border-bottom: 2px solid #2563eb;
-//         }
-
-//         /* ✅ GRID */
-//         .grid {
-//           display: grid;
-//           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-//           gap: 1rem;
-//         }
-
-//         /* ✅ CARD */
-//         .card {
-//           background: #fff;
-//           border-radius: 12px;
-//           padding: 1rem;
-//           box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
-
-//           display: flex;
-//           flex-direction: column;
-//           justify-content: space-between;
-
-//           min-width: 0;
-//         }
-
-//         h3 {
-//           margin-bottom: 0.5rem;
-//         }
-
-//         .desc {
-//           font-size: 0.9rem;
-//           color: #6b7280;
-//           margin-bottom: 0.5rem;
-//         }
-
-//         .progress {
-//           margin-top: 0.5rem;
-//         }
-
-//         .bar {
-//           height: 6px;
-//           background: #e5e7eb;
-//           border-radius: 4px;
-//           overflow: hidden;
-//         }
-
-//         .bar div {
-//           height: 100%;
-//           background: #d1d5db;
-//         }
-
-//         .badges {
-//           display: flex;
-//           gap: 0.5rem;
-//           margin-top: 0.75rem;
-//           flex-wrap: wrap;
-//         }
-
-//         .badge {
-//           padding: 0.3rem 0.7rem;
-//           border-radius: 999px;
-//           font-size: 0.75rem;
-//           background: #d1fae5;
-//           color: #065f46;
-//         }
-
-//         /* ✅ ACTIONS */
-//         .actions {
-//           display: flex;
-//           flex-direction: column;
-//           gap: 0.6rem;
-//           margin-top: 1rem;
-//         }
-
-//         .btn {
-//           width: 100%;
-//           padding: 0.7rem;
-//           text-align: center;
-//           border-radius: 10px;
-//           font-weight: 600;
-//           color: #fff;
-//         }
-
-//         .red {
-//           background: linear-gradient(90deg, #ef4444, #dc2626);
-//         }
-
-//         .green {
-//           background: linear-gradient(90deg, #10b981, #059669);
-//         }
-
-//         .pending {
-//           text-align: center;
-//           font-weight: 600;
-//         }
-
-//         /* ✅ MOBILE – ONE COLUMN */
-//         @media (max-width: 1100px) {
-//           .grid {
-//             grid-template-columns: 1fr;
-//           }
-//         }
-//       `}</style>
-//     </PrivateRoute>
-//   );
-// }
-
-
-
-
-
-// 'use client';
-
-// import PrivateRoute from '@/components/PrivateRoute';
-// import Link from 'next/link';
-// import { useEffect, useState } from 'react';
-// import { getStudentEnrollments } from '@/lib/api';
-
-// interface Enrollment {
-//   _id: string;
-//   course?: {
-//     _id: string;
-//     title: string;
-//     description: string;
-//     status: string;
-//     resultsGenerated?: boolean;
-//   } | null;
-//   status: string;
-//   progress: number;
-// }
-
-// export default function MyCourses() {
-//   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-//   const [loading, setLoading] = useState(true);
-//   const [tab, setTab] = useState<'ongoing' | 'completed'>('completed');
-
-//   useEffect(() => {
-//     const fetchData = async () => {
-//       const res = await getStudentEnrollments();
-//       if (res?.success) setEnrollments(res.data || []);
-//       setLoading(false);
-//     };
-//     fetchData();
-//   }, []);
-
-//   const list =
-//     tab === 'ongoing'
-//       ? enrollments.filter(e => e.status !== 'completed')
-//       : enrollments.filter(e => e.status === 'completed');
-
-//   return (
-//     <PrivateRoute allowedRoles={['student']}>
-//       <div className="page">
-//         <h1 className="title">My Courses</h1>
-
-//         <div className="tabs">
-//           <button onClick={() => setTab('ongoing')} className={tab === 'ongoing' ? 'active' : ''}>
-//             Ongoing
-//           </button>
-//           <button onClick={() => setTab('completed')} className={tab === 'completed' ? 'active' : ''}>
-//             Completed
-//           </button>
-//         </div>
-
-//         {loading ? (
-//           <p>Loading...</p>
-//         ) : (
-//           <div className="grid">
-//             {list.map(e => (
-//               <div key={e._id} className="card">
-//                 <div className="content">
-//                   <h3>{e.course?.title ?? 'Removed course'}</h3>
-
-//                   {e.course?.description && (
-//                     <p className="desc">{e.course.description}</p>
-//                   )}
-
-//                   <div className="progress">
-//                     <span>Progress {e.progress}%</span>
-//                     <div className="bar">
-//                       <div style={{ width: `${e.progress}%` }} />
-//                     </div>
-//                   </div>
-
-//                   <div className="badges">
-//                     <span className="badge">{e.status}</span>
-//                     <span className="badge">{e.course?.status ?? 'draft'}</span>
-//                   </div>
-//                 </div>
-
-//                 {/* ACTIONS */}
-//                 <div className="actions">
-//                   {e.course?.resultsGenerated ? (
-//                     <Link
-//                       href={`/candidate/my-courses/results/${e._id}`}
-//                       className="btn danger"
-//                     >
-//                       Review Results
-//                     </Link>
-//                   ) : (
-//                     <div className="btn pending">Results Pending</div>
-//                   )}
-
-//                   {e.course?._id && (
-//                     <Link
-//                       href={`/candidate/courses/${e.course._id}/view`}
-//                       className="btn success"
-//                     >
-//                       View Course
-//                     </Link>
-//                   )}
-//                 </div>
-//               </div>
-//             ))}
-//           </div>
-//         )}
-//       </div>
-
-//       {/* ✅ CSS – FIXED SPECIFICITY */}
-//       <style jsx>{`
-//         .page {
-//           padding: 1rem;
-//           width: 100%;
-//           overflow-x: hidden;
-//         }
-
-//         .title {
-//           font-size: 1.5rem;
-//           font-weight: 700;
-//           margin-bottom: 1rem;
-//         }
-
-//         .tabs {
-//           display: flex;
-//           gap: 1.5rem;
-//           margin-bottom: 1rem;
-//         }
-
-//         .tabs button {
-//           background: none;
-//           border: none;
-//           font-weight: 600;
-//           cursor: pointer;
-//         }
-
-//         .tabs .active {
-//           color: #2563eb;
-//           border-bottom: 2px solid #2563eb;
-//         }
-
-//         .grid {
-//           display: grid;
-//           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-//           gap: 1rem;
-//         }
-
-//         .card {
-//           background: #fff;
-//           border-radius: 14px;
-//           padding: 1rem;
-//           box-shadow: 0 6px 14px rgba(0, 0, 0, 0.08);
-//           display: flex;
-//           flex-direction: column;
-//           justify-content: space-between;
-//           min-width: 0;
-//         }
-
-//         .desc {
-//           font-size: 0.9rem;
-//           color: #6b7280;
-//         }
-
-//         .bar {
-//           height: 6px;
-//           background: #e5e7eb;
-//           border-radius: 4px;
-//           overflow: hidden;
-//         }
-
-//         .bar div {
-//           height: 100%;
-//           background: #d1d5db;
-//         }
-
-//         .badges {
-//           display: flex;
-//           gap: 0.5rem;
-//           margin-top: 0.75rem;
-//         }
-
-//         .badge {
-//           padding: 0.3rem 0.7rem;
-//           border-radius: 999px;
-//           font-size: 0.75rem;
-//           background: #d1fae5;
-//           color: #065f46;
-//         }
-
-//         .actions {
-//           display: flex;
-//           flex-direction: column;
-//           gap: 0.6rem;
-//           margin-top: 1rem;
-//         }
-
-//         .btn {
-//           width: 100%;
-//           padding: 0.75rem;
-//           border-radius: 12px;
-//           font-weight: 600;
-//           text-align: center;
-//           color: #fff;
-//         }
-
-//         .btn.danger {
-//           background: linear-gradient(90deg, #ef4444, #dc2626);
-//         }
-
-//         .btn.success {
-//           background: linear-gradient(90deg, #10b981, #059669);
-//         }
-
-//         /* 🔥 FIX HERE */
-//         .btn.pending {
-//           background: linear-gradient(90deg, #f59e0b, #d97706);
-//           cursor: not-allowed;
-//           opacity: 0.95;
-//         }
-
-//         @media (max-width: 1100px) {
-//           .grid {
-//             grid-template-columns: 1fr;
-//           }
-//         }
-//       `}</style>
-//     </PrivateRoute>
-//   );
-// }

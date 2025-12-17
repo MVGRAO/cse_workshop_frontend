@@ -46,6 +46,8 @@ export default function CourseResults({ courseId }: CourseResultsProps) {
   const [results, setResults] = useState<CourseResult[]>([]);
   const [loading, setLoading] = useState(true);
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   useEffect(() => {
     fetchResults();
   }, []);
@@ -67,6 +69,11 @@ export default function CourseResults({ courseId }: CourseResultsProps) {
       setLoading(false);
     }
   };
+
+  const filteredResults = results.filter(result =>
+    result.enrollment.student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    result.enrollment.student.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -98,9 +105,26 @@ export default function CourseResults({ courseId }: CourseResultsProps) {
             </button>
           </div>
 
-          {results.length === 0 ? (
+          <div style={{ marginBottom: '1.5rem' }}>
+            <input
+              type="text"
+              placeholder="Filter by name or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className={styles.searchInput}
+              style={{
+                padding: '0.75rem',
+                borderRadius: '0.375rem',
+                border: '1px solid #d1d5db',
+                width: '100%',
+                maxWidth: '400px'
+              }}
+            />
+          </div>
+
+          {filteredResults.length === 0 ? (
             <div className={styles.emptyState}>
-              <p>No completed enrollments found for this course.</p>
+              <p>No completed enrollments found matching your search.</p>
             </div>
           ) : (
             <div className={styles.section}>
@@ -119,15 +143,15 @@ export default function CourseResults({ courseId }: CourseResultsProps) {
                     </tr>
                   </thead>
                   <tbody>
-                    {results.map((result) => (
+                    {filteredResults.map((result) => (
                       <tr key={result.enrollment._id}>
                         <td>{result.enrollment.student.name}</td>
                         <td>{result.enrollment.student.email}</td>
                         <td>{result.enrollment.student.college || 'N/A'}</td>
                         <td>{result.certificate ? result.certificate.theoryScore.toFixed(2) : 'N/A'}</td>
                         <td>
-                          {result.certificate && result.certificate.practicalScore !== undefined 
-                            ? result.certificate.practicalScore.toFixed(2) 
+                          {result.certificate && result.certificate.practicalScore !== undefined
+                            ? result.certificate.practicalScore.toFixed(2)
                             : 'N/A'}
                         </td>
                         <td className={styles.totalScore}>

@@ -51,6 +51,12 @@ export default function CandidateSignIn(){
         router.push('/candidate/dashboard');
       } else {
         // Register
+        if (!formData.email.endsWith('@rguktn.ac.in')) {
+          setErrorMessage('Only @rguktn.ac.in email addresses are allowed for registration.');
+          setLoading(false);
+          return;
+        }
+
         if (formData.password !== formData.confirmPassword) {
           setErrorMessage('Passwords do not match');
           setLoading(false);
@@ -241,7 +247,7 @@ router.push('/candidate/dashboard');
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               className={styles.formInput}
-              placeholder="your.email@college.edu"
+              placeholder="your.email@rguktn.ac.in"
             />
           </div>
 

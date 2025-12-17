@@ -45,7 +45,10 @@ export default function Dashboard() {
         if (certificatesResponse.ok) {
           const certData = await certificatesResponse.json();
           if (certData.success) {
-            certificatesCount = certData.data?.length || 0;
+            // Count only certificates where course results have been generated
+            certificatesCount = (certData.data || []).filter((cert: any) =>
+              cert.course && cert.course.resultsGenerated
+            ).length;
           }
         }
 

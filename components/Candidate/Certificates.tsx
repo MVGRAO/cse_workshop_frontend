@@ -81,7 +81,7 @@ export default function Certificates() {
       <div className={styles.certificatesContainer}>
         <div className={styles.contentWrapper}>
           <h1 className={styles.title}>Certificates</h1>
-          <p className={styles.subtitle}>
+          <p className={styles.subtitle} style={{ fontSize: '1.25rem', fontWeight: 'bold', color: '#4f46e5', marginBottom: '1.5rem' }}>
             {certificates.length === 0
               ? 'No certificates yet'
               : `You have ${certificates.length} certificate${certificates.length > 1 ? 's' : ''}`}

@@ -33,6 +33,8 @@ export default function AdminRequests() {
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<string | null>(null);
 
+  const [searchQuery, setSearchQuery] = useState('');
+
   useEffect(() => {
     const token = getAuthToken('admin');
     const role = getUserRole('admin');
@@ -62,6 +64,16 @@ export default function AdminRequests() {
       setLoading(false);
     }
   };
+
+  const filteredPending = pending.filter(req =>
+    req.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    req.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredAccepted = accepted.filter(req =>
+    req.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    req.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const handleAccept = async (id: string) => {
     try {
@@ -140,10 +152,27 @@ export default function AdminRequests() {
             </div>
           ) : (
             <>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <input
+                  type="text"
+                  placeholder="Filter by name or email..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={styles.searchInput}
+                  style={{
+                    padding: '0.75rem',
+                    borderRadius: '0.375rem',
+                    border: '1px solid #d1d5db',
+                    width: '100%',
+                    maxWidth: '400px'
+                  }}
+                />
+              </div>
+
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <h2 className={styles.sectionTitle}>Not Signed In (Pending)</h2>
-                  <span className={styles.count}>{pending.length} request(s)</span>
+                  <span className={styles.count}>{filteredPending.length} request(s)</span>
                 </div>
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
@@ -156,12 +185,12 @@ export default function AdminRequests() {
                       </tr>
                     </thead>
                     <tbody>
-                      {pending.length === 0 ? (
+                      {filteredPending.length === 0 ? (
                         <tr>
                           <td colSpan={4} className={styles.emptyText}>No pending requests</td>
                         </tr>
                       ) : (
-                        pending.map((request) => (
+                        filteredPending.map((request) => (
                           <tr key={request._id}>
                             <td>{request.name}</td>
                             <td>{request.email}</td>
@@ -199,7 +228,7 @@ export default function AdminRequests() {
               <section className={styles.section}>
                 <div className={styles.sectionHeader}>
                   <h2 className={styles.sectionTitle}>Signed In (Approved)</h2>
-                  <span className={styles.count}>{accepted.length} verifier(s)</span>
+                  <span className={styles.count}>{filteredAccepted.length} verifier(s)</span>
                 </div>
                 <div className={styles.tableWrapper}>
                   <table className={styles.table}>
@@ -212,12 +241,12 @@ export default function AdminRequests() {
                       </tr>
                     </thead>
                     <tbody>
-                      {accepted.length === 0 ? (
+                      {filteredAccepted.length === 0 ? (
                         <tr>
                           <td colSpan={4} className={styles.emptyText}>No approved verifiers yet</td>
                         </tr>
                       ) : (
-                        accepted.map((request) => (
+                        filteredAccepted.map((request) => (
                           <tr key={request._id}>
                             <td>{request.name}</td>
                             <td>{request.email}</td>
@@ -278,6 +307,6 @@ export default function AdminRequests() {
           )}
         </div>
       </div>
-    </PrivateRoute>
+    </PrivateRoute >
   );
 }

@@ -351,6 +351,36 @@ export async function updateProfile(profileData: {
 }
 
 /**
+ * Upload user avatar
+ */
+export async function uploadAvatar(file: File): Promise<any> {
+  const token = getAuthToken();
+  if (!token) {
+    throw new Error('No authentication token found');
+  }
+
+  const formData = new FormData();
+  formData.append('avatar', file);
+
+  const response = await fetch(`${API_BASE_URL}/auth/profile/avatar`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      // No Content-Type needed for FormData, browser sets it with boundary
+    },
+    body: formData,
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to upload avatar');
+  }
+
+  return data;
+}
+
+/**
  * Delete user account
  */
 export async function deleteAccount(): Promise<any> {
@@ -614,6 +644,23 @@ export async function deleteCourse(courseId: string): Promise<any> {
 }
 
 /**
+ * Stop a course (admin only)
+ */
+export async function stopCourse(courseId: string): Promise<any> {
+  const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses/${courseId}/stop`, {
+    method: 'PATCH',
+  }, 'admin');
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.message || 'Failed to stop course');
+  }
+
+  return data;
+}
+
+/**
  * Create an assignment
  */
 export async function createAssignment(assignmentData: {
@@ -837,9 +884,10 @@ export async function uploadImage(file: File): Promise<any> {
 /**
  * Publish a course
  */
-export async function publishCourse(courseId: string): Promise<any> {
+export async function publishCourse(courseId: string, dates?: { startTimestamp: string; endTimestamp: string }): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses/${courseId}/publish`, {
     method: 'POST',
+    body: JSON.stringify(dates || {}),
   }, 'admin');
 
   const data = await response.json();

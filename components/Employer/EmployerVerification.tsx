@@ -32,6 +32,36 @@ export default function EmployerVerification() {
   const [practicalScores, setPracticalScores] = useState<{ [key: string]: string }>({});
   const [practicalMarksAdded, setPracticalMarksAdded] = useState<{ [key: string]: boolean }>({});
 
+  // Filters
+  const [selectedCourse, setSelectedCourse] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // Derived state
+  const allStudents = [...students, ...verifiedStudents];
+  const uniqueCourses = Array.from(new Set(allStudents.map(s => s.course._id)))
+    .map(id => {
+      const student = allStudents.find(s => s.course._id === id);
+      return { id, title: student?.course.title };
+    });
+
+  const filteredStudents = students.filter(student => {
+    const matchesCourse = selectedCourse ? student.course._id === selectedCourse : true;
+    const matchesSearch = searchQuery
+      ? (student.student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.student.email.toLowerCase().includes(searchQuery.toLowerCase()))
+      : true;
+    return matchesCourse && matchesSearch;
+  });
+
+  const filteredVerifiedStudents = verifiedStudents.filter(student => {
+    const matchesCourse = selectedCourse ? student.course._id === selectedCourse : true;
+    const matchesSearch = searchQuery
+      ? (student.student.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.student.email.toLowerCase().includes(searchQuery.toLowerCase()))
+      : true;
+    return matchesCourse && matchesSearch;
+  });
+
   useEffect(() => {
     fetchStudents();
     fetchVerifiedStudents();
@@ -76,7 +106,7 @@ export default function EmployerVerification() {
       });
       return;
     }
-    
+
     // Mark practical marks as added
     setPracticalMarksAdded(prev => ({ ...prev, [enrollmentId]: true }));
     toast({
@@ -100,7 +130,7 @@ export default function EmployerVerification() {
     try {
       setVerifyingId(enrollmentId);
       const practicalScore = hasPractical ? parseFloat(practicalScores[enrollmentId]) : undefined;
-      
+
       if (hasPractical && (isNaN(practicalScore!) || practicalScore! < 0)) {
         toast({
           title: 'Error',
@@ -111,14 +141,14 @@ export default function EmployerVerification() {
       }
 
       const response = await verifyAndGenerateCertificate(enrollmentId, practicalScore);
-      
+
       if (response.success) {
         toast({
           title: 'Success',
           description: `Certificate generated! Theory: ${response.data.certificate.theoryScore}, Total: ${response.data.certificate.totalScore}`,
           variant: 'success',
         });
-        
+
         // Remove from unverified list and add to verified list
         const verifiedStudent = students.find(s => s._id === enrollmentId);
         if (verifiedStudent) {
@@ -164,12 +194,39 @@ export default function EmployerVerification() {
         <div className={styles.wrapper}>
           <h1 className={styles.title}>Verification</h1>
 
+          <div className={styles.section} style={{ marginBottom: '2rem' }}>
+            <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+              <select
+                value={selectedCourse}
+                onChange={(e) => setSelectedCourse(e.target.value)}
+                className={styles.input}
+                style={{ minWidth: '200px' }}
+              >
+                <option value="">All Courses</option>
+                {uniqueCourses.map(c => (
+                  <option key={c.id} value={c.id}>{c.title}</option>
+                ))}
+              </select>
+
+              {selectedCourse && (
+                <input
+                  type="text"
+                  placeholder="Filter by name or email"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className={styles.input}
+                  style={{ minWidth: '200px' }}
+                />
+              )}
+            </div>
+          </div>
+
           {/* Unverified Students Section */}
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>Awaiting Verification</h2>
-            {students.length === 0 ? (
+            {filteredStudents.length === 0 ? (
               <div className={styles.emptyState}>
-                <p className={styles.emptyText}>No completed students awaiting verification.</p>
+                <p className={styles.emptyText}>No completed students awaiting verification matching filters.</p>
               </div>
             ) : (
               <div className={styles.tableContainer}>
@@ -184,7 +241,7 @@ export default function EmployerVerification() {
                     </tr>
                   </thead>
                   <tbody className={styles.tableBody}>
-                    {students.map((student) => (
+                    {filteredStudents.map((student) => (
                       <tr key={student._id} className={styles.tableRow}>
                         <td className={styles.tableCell}>
                           {student.student._id.substring(0, 8)}...
@@ -226,11 +283,10 @@ export default function EmployerVerification() {
                           <button
                             onClick={() => handleVerify(student._id, student.course.hasPracticalSession)}
                             disabled={verifyingId === student._id || (student.course.hasPracticalSession && !practicalMarksAdded[student._id])}
-                            className={`${styles.verifyButton} ${
-                              (student.course.hasPracticalSession && !practicalMarksAdded[student._id])
-                                ? styles.verifyButtonDisabled
-                                : ''
-                            }`}
+                            className={`${styles.verifyButton} ${(student.course.hasPracticalSession && !practicalMarksAdded[student._id])
+                              ? styles.verifyButtonDisabled
+                              : ''
+                              }`}
                           >
                             {verifyingId === student._id ? 'Verifying...' : 'Verify'}
                           </button>
@@ -246,9 +302,9 @@ export default function EmployerVerification() {
           {/* Verified Students Section */}
           <div className={styles.section}>
             <h2 className={styles.sectionTitle}>Verified Students</h2>
-            {verifiedStudents.length === 0 ? (
+            {filteredVerifiedStudents.length === 0 ? (
               <div className={styles.emptyState}>
-                <p className={styles.emptyText}>No verified students yet.</p>
+                <p className={styles.emptyText}>No verified students matching filters.</p>
               </div>
             ) : (
               <div className={styles.tableContainer}>
@@ -265,7 +321,7 @@ export default function EmployerVerification() {
                     </tr>
                   </thead>
                   <tbody className={styles.tableBody}>
-                    {verifiedStudents.map((student: any) => (
+                    {filteredVerifiedStudents.map((student: any) => (
                       <tr key={student._id} className={styles.tableRow}>
                         <td className={styles.tableCell}>
                           {student.student._id.substring(0, 8)}...
