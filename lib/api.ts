@@ -172,73 +172,37 @@ export async function forgotPassword(email: string): Promise<{ success: boolean;
 /**
  * Store authentication token in localStorage with role-specific key
  */
-export function storeAuthToken(token: string, role?: string): void {
+export function storeAuthToken(token: string, role: string): void {
   if (typeof window !== 'undefined') {
-    if (role) {
-      // Store with role-specific key to allow separate tabs
-      localStorage.setItem(`${role}_token`, token);
-      localStorage.setItem(`${role}_role`, role);
-      // Also keep auth_token for backward compatibility
-      localStorage.setItem('auth_token', token);
-      localStorage.setItem('auth_role', role);
-    } else {
-      localStorage.setItem('auth_token', token);
-    }
+    localStorage.setItem(`${role}_token`, token);
+    localStorage.setItem(`${role}_role`, role);
   }
 }
 
 /**
  * Get authentication token from localStorage
- * @param role - Optional role to get role-specific token
+ * @param role - Required role to get role-specific token
  */
-export function getAuthToken(role?: string): string | null {
+export function getAuthToken(role: string): string | null {
   if (typeof window !== 'undefined') {
-    if (role) {
-      // Get role-specific token and verify it matches the role
-      const token = localStorage.getItem(`${role}_token`);
-      const storedRole = localStorage.getItem(`${role}_role`);
-      if (token && storedRole === role) {
-        return token;
-      }
-      return null;
+    const token = localStorage.getItem(`${role}_token`);
+    const storedRole = localStorage.getItem(`${role}_role`);
+    if (token && storedRole === role) {
+      return token;
     }
-    // Try to get from current role first
-    const currentRole = getUserRole();
-    if (currentRole) {
-      const roleToken = localStorage.getItem(`${currentRole}_token`);
-      const storedRole = localStorage.getItem(`${currentRole}_role`);
-      if (roleToken && storedRole === currentRole) {
-        return roleToken;
-      }
-    }
-    // Fallback to generic auth_token
-    return localStorage.getItem('auth_token');
+    return null;
   }
   return null;
 }
 
 /**
  * Remove authentication token from localStorage
- * @param role - Optional role to remove role-specific token
+ * @param role - Required role to remove role-specific token
  */
-export function removeAuthToken(role?: string): void {
+export function removeAuthToken(role: string): void {
   if (typeof window !== 'undefined') {
-    if (role) {
-      localStorage.removeItem(`${role}_token`);
-      localStorage.removeItem(`${role}_role`);
-    }
-    // Also clear generic ones
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_role');
-    // Clear all role tokens if no role specified
-    if (!role) {
-      localStorage.removeItem('student_token');
-      localStorage.removeItem('student_role');
-      localStorage.removeItem('verifier_token');
-      localStorage.removeItem('verifier_role');
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_role');
-    }
+    localStorage.removeItem(`${role}_token`);
+    localStorage.removeItem(`${role}_role`);
   }
 }
 
@@ -266,8 +230,6 @@ export function getUserRole(role?: string): string | null {
         return r;
       }
     }
-    // Fallback to generic auth_role
-    return localStorage.getItem('auth_role');
   }
   return null;
 }
@@ -284,14 +246,13 @@ export function hasRoleToken(role: string): boolean {
 
 /**
  * Get current user profile
- * @param role - Optional role to get role-specific token (defaults to checking all roles)
+ * @param role - Required role to get role-specific token
  */
-export async function getCurrentUser(role?: string): Promise<any> {
-  // Try role-specific token first if provided
-  let token = role ? getAuthToken(role) : getAuthToken();
+export async function getCurrentUser(role: string): Promise<any> {
+  const token = getAuthToken(role);
 
   if (!token) {
-    throw new Error('No authentication token found');
+    throw new Error(`No authentication token found for role: ${role}`);
   }
 
   const response = await fetch(`${API_BASE_URL}/auth/me`, {
@@ -327,7 +288,7 @@ export async function updateProfile(profileData: {
   college?: string;
   classYear?: string;
 }): Promise<any> {
-  const token = getAuthToken();
+  const token = getAuthToken('student');
   if (!token) {
     throw new Error('No authentication token found');
   }
@@ -354,7 +315,7 @@ export async function updateProfile(profileData: {
  * Upload user avatar
  */
 export async function uploadAvatar(file: File): Promise<any> {
-  const token = getAuthToken();
+  const token = getAuthToken('student');
   if (!token) {
     throw new Error('No authentication token found');
   }
@@ -384,7 +345,7 @@ export async function uploadAvatar(file: File): Promise<any> {
  * Delete user account
  */
 export async function deleteAccount(): Promise<any> {
-  const token = getAuthToken();
+  const token = getAuthToken('student');
   if (!token) {
     throw new Error('No authentication token found');
   }
@@ -440,31 +401,12 @@ export async function adminLogin(email: string, password: string): Promise<AuthR
 export async function authenticatedFetch(
   url: string,
   options: RequestInit = {},
-  role?: string
+  role: string
 ): Promise<Response> {
-  // Try to determine role from URL if not provided
-  let targetRole = role;
-  if (!targetRole) {
-    if (url.includes('/admin/')) {
-      targetRole = 'admin';
-    } else if (url.includes('/verifier/')) {
-      targetRole = 'verifier';
-    } else if (url.includes('/student/')) {
-      targetRole = 'student';
-    } else {
-      // Get current role from storage
-      targetRole = getUserRole() || undefined;
-    }
-  }
-
-  // Try role-specific token first, then fallback to generic
-  let token = targetRole ? getAuthToken(targetRole) : null;
-  if (!token) {
-    token = getAuthToken();
-  }
+  const token = getAuthToken(role);
 
   if (!token) {
-    throw new Error('No authentication token found');
+    throw new Error(`No authentication token found for role: ${role}`);
   }
 
   const headers = {
@@ -717,7 +659,7 @@ export async function enrollInCourse(courseId: string, courseData?: any): Promis
   const response = await authenticatedFetch(`${API_BASE_URL}/student/courses/${courseId}/enroll`, {
     method: 'POST',
     body: JSON.stringify(courseData || {}),
-  });
+  }, 'student');
 
   const data = await response.json();
 
@@ -734,7 +676,7 @@ export async function enrollInCourse(courseId: string, courseData?: any): Promis
 export async function getStudentEnrollments(): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/student/enrollments`, {
     method: 'GET',
-  });
+  }, 'student');
 
   const data = await response.json();
 
@@ -905,7 +847,7 @@ export async function publishCourse(courseId: string, dates?: { startTimestamp: 
 export async function startSubmission(assignmentId: string): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/student/assignments/${assignmentId}/start`, {
     method: 'POST',
-  });
+  }, 'student');
 
   const data = await response.json();
 
@@ -931,7 +873,7 @@ export async function submitAssignment(assignmentId: string, submissionData: {
   const response = await authenticatedFetch(`${API_BASE_URL}/student/assignments/${assignmentId}/submit`, {
     method: 'POST',
     body: JSON.stringify(submissionData),
-  });
+  }, 'student');
 
   const data = await response.json();
 
@@ -952,7 +894,7 @@ export async function submitAssignment(assignmentId: string, submissionData: {
 export async function getVerifierOverview(): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/verifier/overview`, {
     method: 'GET',
-  });
+  }, 'verifier');
 
   const data = await response.json();
 
@@ -969,7 +911,7 @@ export async function getVerifierOverview(): Promise<any> {
 export async function getVerifierStudents(): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/verifier/students`, {
     method: 'GET',
-  });
+  }, 'verifier');
 
   const data = await response.json();
 
@@ -986,7 +928,7 @@ export async function getVerifierStudents(): Promise<any> {
 export async function getCompletedStudentsForVerification(): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/verifier/completed-students`, {
     method: 'GET',
-  });
+  }, 'verifier');
 
   const data = await response.json();
 
@@ -1003,7 +945,7 @@ export async function getCompletedStudentsForVerification(): Promise<any> {
 export async function getVerifiedStudents(): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/verifier/verified-students`, {
     method: 'GET',
-  });
+  }, 'verifier');
 
   const data = await response.json();
 
@@ -1072,7 +1014,7 @@ export async function verifyAndGenerateCertificate(enrollmentId: string, practic
   const response = await authenticatedFetch(`${API_BASE_URL}/verifier/enrollments/${enrollmentId}/verify`, {
     method: 'POST',
     body: JSON.stringify({ practicalScore }),
-  });
+  }, 'verifier');
 
   const data = await response.json();
 
@@ -1116,7 +1058,7 @@ export async function getVerifierRequests(status?: string): Promise<any> {
   const query = status ? `?status=${status}` : '';
   const response = await authenticatedFetch(`${API_BASE_URL}/verifier-requests${query}`, {
     method: 'GET',
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -1133,7 +1075,7 @@ export async function getVerifierRequests(status?: string): Promise<any> {
 export async function acceptVerifierRequest(id: string): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/verifier-requests/${id}/accept`, {
     method: 'POST',
-  });
+  }, 'admin');
 
   const data = await response.json();
 
@@ -1150,7 +1092,7 @@ export async function acceptVerifierRequest(id: string): Promise<any> {
 export async function rejectVerifierRequest(id: string): Promise<any> {
   const response = await authenticatedFetch(`${API_BASE_URL}/verifier-requests/${id}/reject`, {
     method: 'POST',
-  });
+  }, 'admin');
 
   const data = await response.json();
 
