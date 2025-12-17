@@ -100,24 +100,16 @@ export default function CourseCreate() {
         fetchVerifiers();
     }, []);
 
+    const [imageFile, setImageFile] = useState<File | null>(null);
+
     /* =======================
        IMAGE UPLOAD
     ======================== */
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (!file) return;
-
-        try {
-            setUploading(true);
-            const res = await uploadImage(file);
-            if (res.success) {
-                setImageUrl(res.data.url);
-                toast({ title: 'Success', description: 'Image uploaded successfully', variant: 'success' });
-            }
-        } catch (error: any) {
-            toast({ title: 'Error', description: error.message || 'Upload failed', variant: 'error' });
-        } finally {
-            setUploading(false);
+        if (file) {
+            setImageFile(file);
+            setImageUrl(URL.createObjectURL(file)); // Preview
         }
     };
 
@@ -139,20 +131,27 @@ export default function CourseCreate() {
         setIsSubmitting(true);
 
         try {
-            const payload = {
-                title,
-                code: code.toUpperCase(),
-                description,
-                category,
-                level,
-                hasPracticalSession: hasPractical,
-                verifiers: selectedVerifiers,
-                startTimestamp: startTimestamp ? new Date(startTimestamp).toISOString() : undefined,
-                endTimestamp: endTimestamp ? new Date(endTimestamp).toISOString() : undefined,
-                image: imageUrl,
-            };
+            const formData = new FormData();
+            formData.append('title', title);
+            formData.append('code', code.toUpperCase());
+            formData.append('description', description);
+            formData.append('category', category);
+            formData.append('level', level);
+            formData.append('hasPracticalSession', String(hasPractical));
 
-            const res = await createCourse(payload);
+            // Handle array for verifiers
+            selectedVerifiers.forEach(id => {
+                formData.append('verifiers', id);
+            });
+
+            if (startTimestamp) formData.append('startTimestamp', new Date(startTimestamp).toISOString());
+            if (endTimestamp) formData.append('endTimestamp', new Date(endTimestamp).toISOString());
+
+            if (imageFile) {
+                formData.append('image', imageFile);
+            }
+
+            const res = await createCourse(formData);
 
             if (res.success && res.data?._id) {
                 toast({
@@ -209,11 +208,16 @@ export default function CourseCreate() {
                                     accept="image/*"
                                     onChange={handleImageUpload}
                                     disabled={uploading}
+                                    className="file-input" // Note: Basic file input styling often requires a wrapper or label hack, keeping it simple for now as per "Vanila CSS" preference unless requested.
                                 />
                                 {uploading && <small>Uploading...</small>}
                                 {imageUrl && (
-                                    <div style={{ marginTop: '0.5rem' }}>
-                                        <img src={imageUrl} alt="Preview" style={{ maxHeight: '200px', borderRadius: '0.5rem', border: '1px solid #d1d5db' }} />
+                                    <div className={styles.previewContainer}>
+                                        <img
+                                            src={imageUrl}
+                                            alt="Course Cover Preview"
+                                            className={styles.previewImage}
+                                        />
                                     </div>
                                 )}
                             </div>

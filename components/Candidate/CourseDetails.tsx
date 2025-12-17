@@ -89,16 +89,14 @@ export default function CourseDetails({ courseId }: CourseDetailsProps) {
             // Ideally, we should check if the student is already enrolled.
             // For now, let's fetch enrollments to check status.
 
-            const enrollmentsRes = await fetch(`${API_BASE_URL}/student/enrollments`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
             if (detailsRes.ok) {
                 const contentType = detailsRes.headers.get("content-type");
                 if (contentType && contentType.indexOf("application/json") !== -1) {
                     const data = await detailsRes.json();
                     if (data.success) {
                         setCourseData(data.data);
+                        // Use the server-provided enrollment status
+                        setEnrolled(!!data.data.isEnrolled);
 
                         // Default Verifier for form
                         const verifiers = data.data.course.verifiers || [];
@@ -119,31 +117,12 @@ export default function CourseDetails({ courseId }: CourseDetailsProps) {
                         description: "Course still not published.",
                         variant: "error"
                     });
-                    // Set a specific state or just let the "Course not found" / Loading handle it, 
-                    // but the user wants "show the course still not published go back"
                     setCourseData({ error: 'Course still not published. Go back.' });
                     setLoading(false);
                     return;
                 }
             }
-
-            if (enrollmentsRes.ok) {
-                const text = await enrollmentsRes.text();
-                // Backend might return wrapped response { success: true, data: [...] }
-                // or just array. Let's parse safely.
-                try {
-                    const json = JSON.parse(text);
-                    const list = json.data || []; // check structure
-                    const isEnrolled = list.some((e: any) => {
-                        const rawCourse = e.course;
-                        const id = rawCourse ? (rawCourse._id ?? rawCourse) : null;
-                        return id === courseId;
-                    });
-                    setEnrolled(isEnrolled);
-                } catch (e) {
-                    console.error("Error parsing enrollments", e);
-                }
-            }
+            // Removed redundant enrollments fetch
 
         } catch (error) {
             console.error('Failed to fetch details:', error);

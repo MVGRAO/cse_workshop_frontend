@@ -32,17 +32,21 @@
 }
 
 .confirmDialog {
-  min-height: 100vh;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f9fafb;
+
+  background-color: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(15px);
 }
 
 .confirmCard {
   background: white;
   border-radius: 0.5rem;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   padding: 2rem;
   max-width: 28rem;
   width: 100%;

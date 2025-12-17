@@ -443,6 +443,10 @@ export async function authenticatedFetch(
     ...options.headers,
   };
 
+  if (options.headers && 'Content-Type' in options.headers && !options.headers['Content-Type']) {
+    delete (headers as any)['Content-Type'];
+  }
+
   return fetch(url, {
     ...options,
     headers,
@@ -477,10 +481,12 @@ export async function createCourse(courseData: {
   level?: string;
   verifiers?: string[];
   hasPracticalSession?: boolean;
-}): Promise<any> {
+} | FormData): Promise<any> {
+  const isFormData = courseData instanceof FormData;
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses`, {
     method: 'POST',
-    body: JSON.stringify(courseData),
+    body: isFormData ? courseData : JSON.stringify(courseData),
+    headers: isFormData ? { 'Content-Type': undefined } as any : { 'Content-Type': 'application/json' }
   }, 'admin');
 
   const data = await response.json();
@@ -644,7 +650,7 @@ export async function createAssignment(assignmentData: {
  * Get student course details (modules/lessons)
  */
 export async function getStudentCourseDetails(courseId: string): Promise<any> {
-  const response = await authenticatedFetch(`${API_BASE_URL}/student/courses/${courseId}/modules`, {
+  const response = await authenticatedFetch(`${API_BASE_URL}/student/courses/${courseId}/details`, {
     method: 'GET',
   }, 'student');
 
@@ -713,9 +719,11 @@ export async function completeEnrollment(enrollmentId: string): Promise<any> {
  * Update a course
  */
 export async function updateCourse(courseId: string, courseData: any): Promise<any> {
+  const isFormData = courseData instanceof FormData;
   const response = await authenticatedFetch(`${API_BASE_URL}/admin/courses/${courseId}`, {
     method: 'PATCH',
-    body: JSON.stringify(courseData),
+    body: isFormData ? courseData : JSON.stringify(courseData),
+    headers: isFormData ? { 'Content-Type': undefined } as any : { 'Content-Type': 'application/json' }
   }, 'admin');
 
   const data = await response.json();

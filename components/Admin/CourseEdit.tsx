@@ -218,21 +218,16 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
 
 
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  /* =======================
+     IMAGE UPLOAD
+  ======================== */
+  const [imageFile, setImageFile] = useState<File | null>(null);
 
-    try {
-      setUploading(true);
-      const res = await uploadImage(file);
-      if (res.success) {
-        setImageUrl(res.data.url);
-        toast({ title: 'Success', description: 'Image uploaded successfully', variant: 'success' });
-      }
-    } catch (error: any) {
-      toast({ title: 'Error', description: error.message || 'Upload failed', variant: 'error' });
-    } finally {
-      setUploading(false);
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      setImageUrl(URL.createObjectURL(file));
     }
   };
 
@@ -244,12 +239,17 @@ export default function CourseEdit({ courseId }: CourseEditProps) {
 
     try {
       setIsSubmitting(true);
-      await updateCourse(courseId, {
-        title: courseName,
-        code: courseCode.toUpperCase(),
-        verifiers: selectedVerifiers,
-        image: imageUrl
-      });
+
+      const formData = new FormData();
+      formData.append('title', courseName);
+      formData.append('code', courseCode.toUpperCase());
+      selectedVerifiers.forEach(id => formData.append('verifiers', id));
+
+      if (imageFile) {
+        formData.append('image', imageFile);
+      }
+
+      await updateCourse(courseId, formData);
 
       if (lessons.length < numLessons) {
         const newLessons = [...lessons];

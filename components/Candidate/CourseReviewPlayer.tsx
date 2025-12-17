@@ -130,7 +130,8 @@ export default function CourseReviewPlayer({ courseId }: CourseReviewPlayerProps
             setLoading(true);
             const response = await getStudentCourseDetails(courseId);
             if (response.success && response.data) {
-                const lessonsData = Array.isArray(response.data) ? response.data : [];
+                // New Response: { course, lessons, isEnrolled }
+                const lessonsData = response.data.lessons || (Array.isArray(response.data) ? response.data : []);
                 setLessons(lessonsData);
             }
         } catch (error: any) {
@@ -205,7 +206,8 @@ export default function CourseReviewPlayer({ courseId }: CourseReviewPlayerProps
                                             <Check size={10} color="white" strokeWidth={4} />
                                         </div>
                                         <div className={styles.stepperContent}>
-                                            <div className={`${styles.stepperTitle} ${isActive ? styles.active : ''}`}>
+                                            <div className={`${styles.stepperTitle} ${isActive ? styles.active : ''}`} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                {module.assignment ? <FileText size={16} /> : <PlayCircle size={16} />}
                                                 {module.title}
                                             </div>
                                         </div>

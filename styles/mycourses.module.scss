@@ -140,11 +140,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.75rem;
+  width: 100%;
 }
 
 .badges {
   display: flex;
   gap: 0.5rem;
+  flex: 0 0 auto;
+  align-items: center;
 }
 
 .badge {
@@ -218,8 +222,87 @@
 /* Optional: spacing between buttons */
 .cardActions {
   display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
+  gap: 0.5rem;
+  /* Allow actions to grow/shrink within the card without forcing overflow */
+  flex: 1 1 auto;
+  max-width: 100%;
+  align-items: center;
+}
+
+/* Mobile adjustments: stack footer and make action buttons full-width */
+@media (max-width: 640px) {
+  /* Keep the actions on the same row and ensure buttons share equal width */
+  .cardFooter {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.5rem;
+    justify-content: space-between;
+  }
+
+  .badges {
+    margin-right: 0.5rem;
+  }
+
+  .cardActions {
+    flex: 1 1 auto;
+  }
+
+  .cardActions > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .resultsButton,
+  .viewCourseButton,
+  .startButton,
+  .disabledButton {
+    flex: 1 1 0;
+    min-height: 44px;
+    padding: 0.5rem 0.75rem;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+}
+
+/* On very small screens stack buttons into two rows for better touch targets */
+@media (max-width: 420px) {
+  .cardActions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .cardActions > * {
+    width: 100%;
+    flex: none;
+  }
+
+  .cardFooter {
+    align-items: stretch;
+  }
+}
+
+/* Stack footer and buttons vertically on small and tablet screens */
+@media (max-width: 768px) {
+  .cardFooter {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+
+  .badges {
+    margin-bottom: 0.25rem;
+  }
+
+  .cardActions {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.5rem;
+  }
+
+  .cardActions > * {
+    width: 100%;
+    flex: none;
+  }
 }
 
 

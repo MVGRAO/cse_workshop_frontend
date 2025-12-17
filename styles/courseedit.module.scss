@@ -214,6 +214,26 @@ textarea#description-textarea {
 /* ================================
    CHECKBOX
    ================================ */
+.previewContainer {
+  margin-top: 1rem;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  padding: 0.5rem;
+  background: #ffffff;
+  display: inline-block;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.previewImage {
+  display: block;
+  max-width: 100%;
+  max-height: 250px;
+  min-width: 200px;
+  border-radius: 0.5rem;
+  object-fit: cover;
+}
+
 .checkboxLabel {
   display: flex;
   align-items: center;
