@@ -1,4 +1,6 @@
 @use "sass:color";
+@import url('https://fonts.cdnfonts.com/css/mariana-2');
+
 
 .loadingContainer {
   min-height: 100vh;
@@ -126,12 +128,12 @@
 }
 
 .certificateWrapper {
-  max-width: 96rem;
+  max-width: 85rem;
   margin: 0 auto;
   background: white;
   border-radius: 0.5rem;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  padding: 2rem;
+  padding: 1rem;
 
   @media print {
     box-shadow: none;
@@ -140,7 +142,7 @@
 }
 
 .certificateBackground {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+ 
   padding: 2.5rem;
   min-height: 600px;
   display: flex;
@@ -150,10 +152,11 @@
 
 .certificateCard {
   background: white;
-  padding: 3.75rem;
+  padding: 1.5rem;
   border: 20px solid #d4af37;
   box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
-  max-width: 1000px;
+width:900px;
+height:794px;
   text-align: center;
   width: 100%;
 }
@@ -167,24 +170,26 @@
   letter-spacing: 0.25rem;
 }
 
+
 .certificateSubtitle {
   font-size: 1.5rem;
   color: #7f8c8d;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1rem;
 }
 
 .studentName {
+   font-family: 'Mariana', serif;
   font-size: 2.25rem;
-  font-weight: bold;
+  font-weight: normal;
   color: #2c3e50;
-  text-decoration: underline;
-  margin: 1.25rem 0;
+  
+  margin:  0;
 }
 
 .certificateBody {
   font-size: 1.75rem;
   color: #2c3e50;
-  margin: 2.5rem 0;
+  margin: 1rem 0;
   line-height: 1.8;
 }
 
@@ -198,21 +203,32 @@
 .courseCode {
   font-size: 1.5rem;
   color: #7f8c8d;
-  margin-bottom: 2.5rem;
+  margin-bottom: 1rem;
 }
 
 .scoresContainer {
-  margin: 2.5rem 0;
-  display: flex;
+  margin:1rem auto;
+  display: grid;
   justify-content: center;
-  gap: 2.5rem;
-  flex-wrap: wrap;
-}
 
+  grid-template-columns: repeat(3, 1fr);
+  width:50%;
+}
+.image{position:absolute;
+}
+.image img{
+  
+    position: relative;
+    top: -224px;
+    width: 100px;
+    right: -828px;
+
+  }
 .scoreItem {
   text-align: center;
+  border:black 1px solid;
+  
 }
-
 .scoreLabel {
   font-size: 1.125rem;
   color: #7f8c8d;
@@ -239,13 +255,15 @@
 }
 
 .signatureText {
+  position:relative;
+  top:-0.25rem;
   font-size: 1.125rem;
   color: #2c3e50;
   margin-top: 0.625rem;
 }
 
 .certificateFooter {
-  margin-top: 3.75rem;
+  margin-top:1.8rem;
   display: flex;
   justify-content: space-between;
   font-size: 1rem;
@@ -269,5 +287,63 @@
   .certificateWrapper {
     margin: 0;
     padding: 0;
+  }
+}
+/* Media Queries: Tablet & Phone */
+@media (max-width: 1024px) {
+  .certificateCard {
+    max-width: 90%;
+    aspect-ratio: auto;
+  }
+
+  .certificateHeader,
+  .certificateBody,
+  .studentName,
+  .courseName,
+  .courseCode,
+  .grade,
+  .scoreLabel,
+  .scoreValue,
+  .certificateSubtitle {
+    font-size: 2.2vw;
+  }
+
+  .scoresContainer {
+    width: 80%;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+}
+
+@media (max-width: 768px) {
+  .certificateCard {
+    max-width: 95%;
+    padding: 1rem;
+  }
+
+  .certificateHeader,
+  .certificateBody,
+  .studentName,
+  .courseName,
+  .courseCode,
+  .grade,
+  .scoreLabel,
+  .scoreValue,
+  .certificateSubtitle {
+    font-size: 4vw;
+  }
+
+  .scoresContainer {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+
+  .signatureLine {
+    width: 40%;
+  }
+
+  .certificateFooter {
+    flex-direction: column;
+    gap: 0.5rem;
   }
 }

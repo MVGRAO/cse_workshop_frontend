@@ -115,6 +115,7 @@ export default function CertificateView({ certificateId }: CertificateViewProps)
               max-width: 1000px;
               text-align: center;
             }
+              
             .certificate-header {
               font-size: 48px;
               font-weight: bold;
@@ -281,16 +282,19 @@ export default function CertificateView({ certificateId }: CertificateViewProps)
       </div>
 
       <div className={styles.certificateWrapper}>
-        <div className={styles.certificateBackground}>
+        {/* <div className={styles.certificateBackground}> */}
           <div className={styles.certificateCard}>
-            <div className={styles.certificateHeader}>Certificate of Completion</div>
+            <div className={styles.certificateHeader}>
+             Certificate
+              of Completion
+            </div>
             <div className={styles.certificateSubtitle}>This is to certify that</div>
             <div className={styles.studentName}>{certificate.student.name}</div>
             <div className={styles.certificateBody}>
               has successfully completed the course
             </div>
             <div className={styles.courseName}>{certificate.course.title}</div>
-            <div className={styles.courseCode}>{certificate.course.code}</div>
+            
 
             <div className={styles.scoresContainer}>
               <div className={styles.scoreItem}>
@@ -325,10 +329,13 @@ export default function CertificateView({ certificateId }: CertificateViewProps)
                 <div className={styles.footerLabel}>Certificate Number</div>
                 <div className={styles.footerValue}>{certificate.certificateNumber}</div>
               </div>
+             
+
             </div>
+             <div className={styles.image}><img src="/stamp.png"/></div> 
           </div>
         </div>
       </div>
-    </div>
+    
   );
 }
