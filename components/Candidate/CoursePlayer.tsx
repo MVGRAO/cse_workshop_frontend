@@ -145,7 +145,7 @@ export default function CoursePlayer({ courseId }: CoursePlayerProps) {
 
     const fetchUserData = async () => {
         try {
-            const userData = await getCurrentUser();
+            const userData = await getCurrentUser('student');
             if (userData && userData.success) {
                 setUser(userData.data.user || userData.data);
             }

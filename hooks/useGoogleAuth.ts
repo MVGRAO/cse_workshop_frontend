@@ -61,10 +61,14 @@ export function useGoogleAuth(options: UseGoogleAuthOptions = {}) {
       return;
     }
 
-    // Check if script is already loaded
-    if (document.querySelector('script[src="https://accounts.google.com/gsi/client"]')) {
-      // Script already exists, just initialize if Google is available
-      if (window.google) {
+    // Check if script is already in the DOM (e.g., injected via Next.js <Script>)
+    const existingScript = document.querySelector(
+      'script[src="https://accounts.google.com/gsi/client"]'
+    ) as HTMLScriptElement | null;
+
+    if (existingScript) {
+      const initializeGoogle = () => {
+        if (!window.google) return;
         window.google.accounts.id.initialize({
           client_id: clientId,
           callback: async (response) => {
@@ -88,6 +92,14 @@ export function useGoogleAuth(options: UseGoogleAuthOptions = {}) {
           },
         });
         setIsGoogleLoaded(true);
+      };
+
+      if (window.google) {
+        // Script already loaded and google object is available
+        initializeGoogle();
+      } else {
+        // Script tag exists but hasn't fired onload yet — listen for it
+        existingScript.addEventListener('load', initializeGoogle, { once: true });
       }
       return;
     }

@@ -116,7 +116,7 @@ export default function CourseReviewPlayer({ courseId }: CourseReviewPlayerProps
 
     const fetchUserData = async () => {
         try {
-            const userData = await getCurrentUser();
+            const userData = await getCurrentUser('student');
             if (userData && userData.success) {
                 setUser(userData.data.user || userData.data);
             }

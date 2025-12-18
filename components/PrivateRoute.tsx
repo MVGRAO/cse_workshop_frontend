@@ -30,9 +30,9 @@ export default function PrivateRoute({ children, allowedRoles }: PrivateRoutePro
       expectedRole = allowedRoles[0];
     }
 
-    // Get token for expected role (allows separate tabs)
-    const token = expectedRole ? getAuthToken(expectedRole) : getAuthToken();
+    // Get token for expected role (allows separate tabs). Do not use generic fallback.
     const role = expectedRole ? getUserRole(expectedRole) : getUserRole();
+    const token = role ? getAuthToken(role) : null;
 
     if (!token) {
       // No token - redirect to appropriate login page

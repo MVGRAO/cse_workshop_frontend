@@ -116,8 +116,8 @@ const FeedbackForm: React.FC = () => {
 
 const getUserProfile = async () => {
   try {
-    // 🔹 CHANGE student → employer
-    const token = getAuthToken('employer');
+    // Use verifier role for employer area
+    const token = getAuthToken('verifier');
 
     if (!token) {
       setIsAuthenticated(false);
@@ -127,8 +127,8 @@ const getUserProfile = async () => {
     setIsAuthenticated(true);
     setLoading(true);
 
-    // 🔹 CHANGE student → employer
-    const response = await getCurrentUser('employer');
+    // Use verifier role for employer area
+    const response = await getCurrentUser('verifier');
 
     if (response?.success) {
       const data = response.data;

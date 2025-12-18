@@ -10,7 +10,7 @@ export default function CandidateNavbar() {
   const router = useRouter();
 
   const handleLogout = () => {
-    removeAuthToken();
+    removeAuthToken('student');
     router.push('/candidate');
   };
 

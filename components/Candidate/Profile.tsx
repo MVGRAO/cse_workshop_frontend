@@ -12,7 +12,7 @@ export default function CandidateProfile() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await getCurrentUser();
+        const response = await getCurrentUser('student');
         if (response.success) {
           setUser(response.data);
         }

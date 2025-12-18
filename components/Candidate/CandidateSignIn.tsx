@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { getAuthToken, login, register, storeAuthToken, getUserRole } from "@/lib/api";
+import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 import styles from "@/styles/candidatesignin.module.scss";
 
 export default function CandidateSignIn(){
@@ -11,7 +12,6 @@ export default function CandidateSignIn(){
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -22,6 +22,27 @@ export default function CandidateSignIn(){
     mobile: '',
   });
 
+  // Initialize Google Auth
+  const { signIn: googleSignIn, isLoading: googleLoading, error: googleError } = useGoogleAuth({
+    onSuccess: (data) => {
+      if (!data.data?.user) {
+        setErrorMessage('Google login failed. No user data received.');
+        return;
+      }
+      
+      if (data.data.user.role !== 'student') {
+        setErrorMessage('This Google account is not a student account.');
+        return;
+      }
+      
+      // Token already stored by the hook
+      router.push('/candidate/dashboard');
+    },
+    onError: (error) => {
+      setErrorMessage(error.message || 'Google login failed');
+    }
+  });
+
   // Redirect if already logged in as student
   useEffect(() => {
     const token = getAuthToken('student');
@@ -30,6 +51,13 @@ export default function CandidateSignIn(){
       router.push('/candidate/dashboard');
     }
   }, [router]);
+
+  // Display Google Auth errors
+  useEffect(() => {
+    if (googleError) {
+      setErrorMessage(googleError.message);
+    }
+  }, [googleError]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,109 +122,7 @@ export default function CandidateSignIn(){
     }
   };
 
-  // NEW: Google Sign-In Handler
-  const handleGoogleLogin = async (credentialResponse: any) => {
-  console.log("Google callback triggered with:", credentialResponse);  // ← Add this
 
-  if (!credentialResponse?.credential) {
-    setErrorMessage('No credential received from Google');
-    setGoogleLoading(false);
-    return;
-  }
-
-  setGoogleLoading(true);
-  setErrorMessage(null);
-  try {
-    const res = await fetch('http://localhost:5000/api/v1/auth/google', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken: credentialResponse.credential })
-    });
-
-    const data = await res.json();
-    console.log("Backend response:", data);  // ← Add this – this is key!
-
-    if (!data.success) {
-      setErrorMessage(data.message || 'Google login failed');
-      setGoogleLoading(false);
-      return;
-    }
-    if (!data.data?.user) {
-  setErrorMessage('Google login failed. No user data received.');
-  setGoogleLoading(false);
-  return;
-}
-
-if (data.data.user.role !== 'student') {
-  setErrorMessage('This Google account is not a student account.');
-  setGoogleLoading(false);
-  return;
-}
-
-// Correct paths
-storeAuthToken(data.data.token, 'student');
-router.push('/candidate/dashboard');
-
-    // ... rest of your code
-  } catch (err: any) {
-    console.error("Fetch error:", err);  // ← Add this
-    setErrorMessage(err.message || 'Google login failed');
-    setGoogleLoading(false);
-  }
-  
-  
-};
-
-  // Load Google SDK
-    // FIXED: Load Google SDK properly for Next.js
-  useEffect(() => {
-  // Define FIRST
-  const initializeGoogleButton = () => {
-    // @ts-ignore
-    if (!window.google?.accounts) return;
-
-    // @ts-ignore
-    window.google.accounts.id.initialize({
-      client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!,
-      callback: handleGoogleLogin,
-    });
-
-    // @ts-ignore
-    try {
-      const el = document.getElementById('googleButtonDiv');
-      if (!el) {
-        console.warn('Google button element not found: #googleButtonDiv');
-        return;
-      }
-
-      window.google.accounts.id.renderButton(el, {
-        theme: 'outline',
-        size: 'large',
-        text: 'continue_with',
-        shape: 'rectangular',
-        width: '100%',
-      });
-    } catch (err) {
-      console.error('Error rendering Google button', err);
-    }
-  };
-
-  // If Google SDK already loaded
-  if ((window as any).google?.accounts) {
-    initializeGoogleButton();
-    return;
-  }
-
-  // Load Google SDK
-  const script = document.createElement('script');
-  script.src = 'https://accounts.google.com/gsi/client';
-  script.async = true;
-  script.defer = true;
-
-  script.onload = initializeGoogleButton;
-
-  document.body.appendChild(script);
-}, []);
 
 
   return (
@@ -338,25 +264,40 @@ router.push('/candidate/dashboard');
             )}
           </button>
 
-          {/* NEW: Google Sign-In Button */}
-          <div style={{ marginTop: '1rem', position: 'relative' }}>
-            <div id="googleButtonDiv" style={{ width: '100%' }}></div>
-            {googleLoading && (
-              <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                transform: 'translate(-50%, -50%)',
-              }}>
-                <span className={styles.loader} />
-              </div>
-            )}
-          </div>
-
           {/* Divider */}
           <div style={{ textAlign: 'center', margin: '1.5rem 0', color: '#6b7280', fontSize: '0.875rem' }}>
             or
           </div>
+
+          {/* Google Sign-In Button */}
+          <button
+            type="button"
+            onClick={googleSignIn}
+            disabled={loading || googleLoading}
+            className={styles.googleButton}
+            style={{ 
+              marginTop: '0.5rem', 
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            {googleLoading ? (
+              <span className={styles.loader} />
+            ) : (
+              <>
+                <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                  <path d="M9.003 18c2.43 0 4.467-.806 5.956-2.18L12.05 13.56c-.806.54-1.836.86-3.047.86-2.344 0-4.328-1.584-5.036-3.711H.96v2.332C2.438 15.983 5.482 18 9.003 18z" fill="#34A853"/>
+                  <path d="M3.964 10.712c-.18-.54-.282-1.117-.282-1.71 0-.593.102-1.17.282-1.71V4.96H.957C.347 6.175 0 7.55 0 9.002c0 1.452.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                  <path d="M9.003 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.464.891 11.426 0 9.003 0 5.482 0 2.438 2.017.96 4.958L3.967 7.29c.708-2.127 2.692-3.71 5.036-3.71z" fill="#EA4335"/>
+                </svg>
+                <span>Continue with Google</span>
+              </>
+            )}
+          </button>
 
           <div className="text-center" style={{ marginTop: '1rem' }}>
             <button
