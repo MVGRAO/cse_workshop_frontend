@@ -212,12 +212,6 @@ router.push('/candidate/dashboard');
           priority
         />
         
-        <div className={styles.signInTextContainer}>
-          <p className={styles.subheading}>Sign in to</p>
-          <p className={styles.purposeText}>
-            Access CSE Workshop Courses and Resources
-          </p>
-        </div>
 
         <form onSubmit={handleSubmit} className={styles.formContainer}>
           {/* Your existing form fields stay 100% unchanged */}
@@ -339,7 +333,7 @@ router.push('/candidate/dashboard');
           </button>
 
           {/* NEW: Google Sign-In Button */}
-          <div style={{ marginTop: '1rem', position: 'relative' }}>
+          {/* <div style={{ marginTop: '1rem', position: 'relative' }}>
             <div id="googleButtonDiv" style={{ width: '100%' }}></div>
             {googleLoading && (
               <div style={{
@@ -351,12 +345,12 @@ router.push('/candidate/dashboard');
                 <span className={styles.loader} />
               </div>
             )}
-          </div>
+          </div> */}
 
           {/* Divider */}
-          <div style={{ textAlign: 'center', margin: '1.5rem 0', color: '#6b7280', fontSize: '0.875rem' }}>
+          {/* <div style={{ textAlign: 'center', margin: '1.5rem 0', color: '#6b7280', fontSize: '0.875rem' }}>
             or
-          </div>
+          </div> */}
 
           <div className="text-center" style={{ marginTop: '1rem' }}>
             <button
