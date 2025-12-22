@@ -479,6 +479,16 @@ export async function authenticatedFetch(
     delete (headers as any)['Content-Type'];
   }
 
+  // If the caller provided a FormData body, ensure we don't send a Content-Type
+  // header — the browser will set the correct multipart boundary for us.
+  try {
+    if (options.body && typeof FormData !== 'undefined' && options.body instanceof FormData) {
+      delete (headers as any)['Content-Type'];
+    }
+  } catch (e) {
+    // Ignore errors checking FormData in non-browser environments
+  }
+
   return fetch(url, {
     ...options,
     headers,

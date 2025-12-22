@@ -9,7 +9,7 @@ import { useCandidateProfile } from '@/context/CandidateProfileContext';
 
 import { Loader2 } from 'lucide-react';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:5000/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api/v1';
 
 interface Course {
   _id: string;
@@ -33,8 +33,9 @@ export default function Courses() {
     try {
       setLoading(true);
       const token = getAuthToken('student');
+      console.log(token);
       if (!token) return;
-
+      
       const [coursesRes, enrollmentsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/student/courses/available`, {
           headers: { 'Authorization': `Bearer ${token}` }

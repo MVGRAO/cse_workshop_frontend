@@ -14,9 +14,9 @@ const CandidateSidebar: React.FC = () => {
   const { isExpanded, setIsExpanded } = useSidebar();
 
   const menuItems = [
-    { icon: <Home size={20} />, label: 'Dashboard', path: '/candidate/dashboard' },
     { icon: <BookOpen size={20} />, label: 'Courses', path: '/candidate/courses' },
     { icon: <GraduationCap size={20} />, label: 'My Courses', path: '/candidate/my-courses' },
+    { icon: <Home size={20} />, label: 'Dashboard', path: '/candidate/dashboard' },
     { icon: <Award size={20} />, label: 'Certificates', path: '/candidate/certificates' },
     { icon: <Settings size={20} />, label: 'Settings', path: '/candidate/settings' },
     { icon: <MessageSquare size={20} />, label: 'Contact Us', path: '/candidate/feedback' },

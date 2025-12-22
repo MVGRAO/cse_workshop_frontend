@@ -9,11 +9,18 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease,
+    box-shadow 0.3s ease;
+  opacity: 0.95;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
 }
 
 .courseCard:hover .courseImage {
   transform: scale(1.05);
+  opacity: 1;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.10);
 }
 
 .enrolledBadge {
@@ -163,11 +170,18 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease;
+  transition:
+    transform 0.3s ease,
+    opacity 0.3s ease,
+    box-shadow 0.3s ease;
+  opacity: 0.95;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
 }
 
 .courseCard:hover .courseImage {
   transform: scale(1.05);
+  opacity: 1;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.10);
 }
 
 .enrolledBadge {
